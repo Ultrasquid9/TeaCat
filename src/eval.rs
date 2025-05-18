@@ -36,6 +36,11 @@ pub fn eval(tokens: TokenTree) -> String {
 				html.push_str(str.trim())
 			}
 			Token::None => continue,
+
+			Token::Var(_) | Token::StartVar | Token::EndVar | Token::AccessVar(_) => {
+				println!("error: variables should be expanded earlier");
+				continue;
+			}
 		}
 
 		html.push('\n');

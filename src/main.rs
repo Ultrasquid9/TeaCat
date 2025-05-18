@@ -8,10 +8,10 @@ const INPUT: &str = r#"
 # Comments use hashtags
 
 # Variables
-$header <- Hello, World!;
+$hello_world Hello, World!;
 
 # Just about anything can be assigned to a variable
-$title <- :title[
+$title :title[
   My Webpage
 ];
 

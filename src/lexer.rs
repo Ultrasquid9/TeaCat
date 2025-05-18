@@ -2,7 +2,7 @@ use std::mem::replace;
 
 pub type TokenTree = Vec<Token>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Token {
 	/// No element present (ignore when parsing)
 	None,
@@ -22,14 +22,26 @@ pub enum Token {
 	StartAttribute,
 	/// The end of a list of attributes
 	EndAttribute,
+
+	/// Defining a variable with the given name
+	Var(String),
+	/// The start of the contents of a variable
+	StartVar,
+	/// The end of the contents of a variable
+	EndVar,
+	/// Accessing a variable with the given name  
+	AccessVar(String),
 }
 
 impl Token {
 	fn string_mut(&mut self) -> Option<&mut String> {
 		Some(match self {
-			Self::Tag(str) => str,
-			Self::Text(str) => str,
-			Self::Attribute(str) => str,
+			Self::Tag(str)
+			| Self::Text(str)
+			| Self::Attribute(str)
+			| Self::Var(str)
+			| Self::AccessVar(str) => str,
+
 			_ => return None,
 		})
 	}
@@ -38,10 +50,6 @@ impl Token {
 		if let Some(str) = self.string_mut() {
 			str.push(ch);
 		}
-	}
-
-	fn is_attribute(&self) -> bool {
-		matches!(self, Self::Attribute(_))
 	}
 
 	fn tag_allowed(&self) -> bool {
@@ -64,6 +72,7 @@ pub fn lex(input: String) -> TokenTree {
 	}
 
 	let mut is_comment = false;
+	let mut is_var = false;
 	let mut is_escape = false;
 
 	for ch in input.chars() {
@@ -95,7 +104,26 @@ pub fn lex(input: String) -> TokenTree {
 				token_switcheroo!(Token::Attribute("".into()))
 			}
 			'}' => token_switcheroo!(Token::EndAttribute),
-			',' if current.is_attribute() => token_switcheroo!(Token::Attribute("".into())),
+			',' if matches!(current, Token::Attribute(_)) => {
+				token_switcheroo!(Token::Attribute("".into()))
+			}
+
+			'$' => {
+				is_var = true;
+				token_switcheroo!(Token::Var("".into()))
+			}
+			whitespace if whitespace.is_whitespace() && matches!(current, Token::Var(_)) => {
+				token_switcheroo!(Token::StartVar);
+				token_switcheroo!(Token::Text("".into()))
+			}
+			whitespace if whitespace.is_whitespace() && matches!(current, Token::AccessVar(_)) => {
+				token_switcheroo!(Token::Text("".into()))
+			}
+			';' if is_var => {
+				is_var = false;
+				token_switcheroo!(Token::EndVar);
+			}
+			'&' => token_switcheroo!(Token::AccessVar("".into())),
 
 			other => current.push_char(other),
 		}

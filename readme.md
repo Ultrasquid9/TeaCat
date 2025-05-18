@@ -17,7 +17,7 @@ For example, take the following HTML:
 ```
 WebCat allows you to instead write it like this:
 ```
-$hello_world <- Hello World!;
+$hello_world Hello World!;
 
 :head[
 	:title[&hello_world]
