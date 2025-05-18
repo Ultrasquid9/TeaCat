@@ -4,10 +4,24 @@ pub type TokenTree = Vec<Token>;
 
 #[derive(Debug)]
 pub enum Token {
+	/// No element present (ignore when parsing)
 	None,
+	/// A simple text element
 	Text(String),
+
+	/// Defining an HTML tag
 	Tag(String),
+	/// The start of an HTML tag
+	StartTag,
+	/// The end of an HTML tag
 	EndTag,
+
+	/// Defining a tag attribute
+	Attribute(String),
+	/// The start of a list of attributes
+	StartAttribute,
+	/// The end of a list of attributes
+	EndAttribute,
 }
 
 impl Token {
@@ -15,6 +29,7 @@ impl Token {
 		Some(match self {
 			Self::Tag(str) => str,
 			Self::Text(str) => str,
+			Self::Attribute(str) => str,
 			_ => return None,
 		})
 	}
@@ -23,6 +38,10 @@ impl Token {
 		if let Some(str) = self.string_mut() {
 			str.push(ch);
 		}
+	}
+
+	fn is_attribute(&self) -> bool {
+		matches!(self, Self::Attribute(_))
 	}
 }
 
@@ -59,12 +78,17 @@ pub fn lex(input: String) -> TokenTree {
 			':' => token_switcheroo!(Token::Tag("".into())),
 
 			'[' => {
-				match current {
-					Token::Tag(_) => token_switcheroo!(Token::Text("".into())),
-					_ => panic!()
-				}
+				token_switcheroo!(Token::StartTag);
+				token_switcheroo!(Token::Text("".into()));
 			}
 			']' => token_switcheroo!(Token::EndTag),
+
+			'{' => {
+				token_switcheroo!(Token::StartAttribute);
+				token_switcheroo!(Token::Attribute("".into()))
+			}
+			'}' => token_switcheroo!(Token::EndAttribute),
+			',' if current.is_attribute() => token_switcheroo!(Token::Attribute("".into())),
 
 			other => current.push_char(other),
 		}

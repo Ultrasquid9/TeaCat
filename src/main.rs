@@ -1,8 +1,8 @@
-use lexer::lex;
 use eval::eval;
+use lexer::lex;
 
-pub mod lexer;
 pub mod eval;
+pub mod lexer;
 
 const INPUT: &str = r#"
 # Comments use hashtags
