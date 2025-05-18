@@ -1,7 +1,7 @@
 use crate::lexer::{Token, TokenTree};
 
 pub fn eval(tokens: TokenTree) -> String {
-	let mut html = "<html>".to_string();
+	let mut html = "<html>\n\t".to_string();
 	let mut tag_stack = vec![];
 
 	for token in tokens {
@@ -9,12 +9,12 @@ pub fn eval(tokens: TokenTree) -> String {
 			Token::Tag(str) => {
 				html.push_str(&format!("<{}", &str));
 				tag_stack.push(str);
+				continue;
 			}
-			Token::StartTag => {
-				html.push('>');
-			}
+			Token::StartTag => html.push('>'),
 			Token::EndTag => {
 				let tag = tag_stack.pop().unwrap();
+				html.pop();
 				html.push_str(&format!("</{}>", tag.trim()));
 			}
 
@@ -22,16 +22,29 @@ pub fn eval(tokens: TokenTree) -> String {
 			Token::Attribute(str) => {
 				let trimmed = str.trim();
 				if !trimmed.is_empty() {
-					html.push_str(&format!(" {}", trimmed))
+					html.push_str(&format!(" {}", trimmed));
 				}
+				continue;
 			}
 			Token::EndAttribute => continue,
 
-			Token::Text(str) => html.push_str(str.trim()),
+			Token::Text(str) => {
+				let trimmed = str.trim();
+				if trimmed.is_empty() {
+					continue;
+				}
+				html.push_str(str.trim())
+			}
 			Token::None => continue,
+		}
+
+		html.push('\n');
+		for _ in 0..tag_stack.len() + 1 {
+			html.push('\t');
 		}
 	}
 
-	html.push_str("</html>");
+	html.pop();
+	html.push_str("</html>\n");
 	html
 }
