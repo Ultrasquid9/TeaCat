@@ -43,6 +43,13 @@ impl Token {
 	fn is_attribute(&self) -> bool {
 		matches!(self, Self::Attribute(_))
 	}
+
+	fn tag_allowed(&self) -> bool {
+		!matches!(
+			self,
+			Self::Tag(_) | Self::Attribute(_) | Self::StartAttribute | Self::EndAttribute
+		)
+	}
 }
 
 pub fn lex(input: String) -> TokenTree {
@@ -75,7 +82,7 @@ pub fn lex(input: String) -> TokenTree {
 		match ch {
 			'#' => is_comment = true,
 			'\\' => is_escape = true,
-			':' => token_switcheroo!(Token::Tag("".into())),
+			':' if current.tag_allowed() => token_switcheroo!(Token::Tag("".into())),
 
 			'[' => {
 				token_switcheroo!(Token::StartTag);

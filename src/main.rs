@@ -21,13 +21,21 @@ $title <- :title[
 
 :head[
 	# An & symbol allows you to access a variable 
-	&title;
+	&title
 ]
 
 :body[
 	:p[
 		# A backslash escapes the following character
 		\&title # will print "title" in the generated HTML 
+
+		:br[]
+
+		# Use curly braces for tag attributes
+		:img{
+			src="https://www.w3schools.com/images/w3schools_green.jpg", 
+			alt="Test Image",
+		} []
 	]
 ]
 "#;
@@ -35,5 +43,7 @@ $title <- :title[
 fn main() {
 	let tokens = lex(INPUT.into());
 	let html = eval(tokens);
+
 	println!("{}", html);
+	_ = std::fs::write("./index.html", html);
 }

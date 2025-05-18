@@ -19,7 +19,12 @@ pub fn eval(tokens: TokenTree) -> String {
 			}
 
 			Token::StartAttribute => continue,
-			Token::Attribute(str) => html.push_str(&format!(" {str}")),
+			Token::Attribute(str) => {
+				let trimmed = str.trim();
+				if !trimmed.is_empty() {
+					html.push_str(&format!(" {}", trimmed))
+				}
+			}
 			Token::EndAttribute => continue,
 
 			Token::Text(str) => html.push_str(str.trim()),
