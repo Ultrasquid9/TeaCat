@@ -1,7 +1,9 @@
 use eval::eval;
+use expansion::variables;
 use lexer::lex;
 
 pub mod eval;
+pub mod expansion;
 pub mod lexer;
 
 const INPUT: &str = r#"
@@ -12,7 +14,7 @@ $hello_world Hello, World!;
 
 # Just about anything can be assigned to a variable
 $title :title[
-  My Webpage
+	My Webpage
 ];
 
 # Macros
@@ -42,6 +44,7 @@ $title :title[
 
 fn main() {
 	let tokens = lex(INPUT.into());
+	let tokens = variables(tokens);
 	let html = eval(tokens);
 
 	println!("{}", html);

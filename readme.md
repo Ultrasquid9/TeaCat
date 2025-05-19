@@ -32,8 +32,8 @@ The following WebCat code can then be instantly transpiled into HTML entirely of
 
 Features:
 - [x] Elements
-- [ ] Attributes
-- [ ] Variables
+- [x] Attributes
+- [x] Variables
 - [x] Comments
 - [ ] Macros
 - [ ] Inline CSS/JS
