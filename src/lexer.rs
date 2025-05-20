@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::mem::replace;
 
 use nom::error::Error as NomError;
 
@@ -50,20 +51,13 @@ pub fn lex(mut input: String) -> TokenStream {
 	let mut tokenstream = vec![];
 	let mut current = Token::empty();
 
-	macro_rules! token_switcheroo {
-		($new:expr) => {{
-			let token = std::mem::replace(&mut current, $new);
-			tokenstream.push(token);
-		}};
-	}
-
 	let mut escaped = false;
 
 	while !input.is_empty() {
 		// Handling the backslash escape
 		// TODO: \n, \t, etc
 		if escaped {
-			current.push_char(input.remove(0));
+			push_current_ch(&mut input, &mut current, &mut tokenstream);
 			escaped = false;
 			continue;
 		}
@@ -85,30 +79,13 @@ pub fn lex(mut input: String) -> TokenStream {
 
 		// Checks for one of the operators/keywords is present
 		if let Some(token) = rules(&mut input) {
-			token_switcheroo!(token);
+			let token = replace(&mut current, token);
+			tokenstream.push(token);
 			continue;
 		}
 
 		// No operators/keywords found, so the current char is inserted into the current token
-		let ch = input.remove(0);
-
-		// If the current Token does not store text, set it to one that does.
-		// - If the current Token implies an Ident, create one.
-		// - Otherwise, create a Text.
-		if current.string_mut().is_none() {
-			let token = if current.creates_ident() {
-				Token::Ident("".into())
-			} else {
-				Token::empty()
-			};
-			token_switcheroo!(token);
-		}
-		// An Ident cannot contain whitespace.
-		if matches!(current, Token::Ident(_)) && ch.is_whitespace() {
-			token_switcheroo!(Token::empty())
-		}
-
-		current.push_char(ch);
+		push_current_ch(&mut input, &mut current, &mut tokenstream);
 	}
 
 	// Adding the current token
@@ -121,6 +98,30 @@ pub fn lex(mut input: String) -> TokenStream {
 		.collect();
 
 	tokenstream.into()
+}
+
+fn push_current_ch(input: &mut String, current: &mut Token, tokenstream: &mut Vec<Token>) {
+	let ch = input.remove(0);
+
+	// If the current Token does not store text, set it to one that does.
+	// - If the current Token implies an Ident, create one.
+	// - Otherwise, create a Text.
+	if current.string_mut().is_none() {
+		let token = if current.creates_ident() {
+			Token::Ident("".into())
+		} else {
+			Token::empty()
+		};
+		let token = replace(current, token);
+		tokenstream.push(token);
+	}
+	// An Ident cannot contain whitespace.
+	if matches!(current, Token::Ident(_)) && ch.is_whitespace() {
+		let token = replace(current, Token::empty());
+		tokenstream.push(token);
+	}
+
+	current.push_char(ch);
 }
 
 fn rules(input: &mut String) -> Option<Token> {
@@ -149,10 +150,9 @@ fn str_starts_with(input: &str, pat: &str) -> bool {
 	tag::<&str, &str, NomError<_>>(pat)(input).is_ok()
 }
 
+#[cfg(test)]
 mod tests {
-	#[allow(unused)]
 	use super::*;
-	#[allow(unused)]
 	use crate::vecde;
 
 	#[test]
@@ -226,6 +226,52 @@ mod tests {
 				Token::Colon,
 				Token::Ident("b".into()),
 				Token::OpenBracket,
+				Token::CloseBracket,
+			]
+		);
+	}
+
+	#[test]
+	fn final_boss() {
+		// Simplified version of the main.rs example
+		let str = r#"
+		&title := :title[My Webpage];
+		:head[&title]
+		:body[:p[\&title]]
+		"#
+		.to_string();
+
+		let tokenstream = lex(str);
+
+		assert_eq!(
+			tokenstream,
+			vecde![
+				// Line 1
+				Token::Andpersand,
+				Token::Ident("title".into()),
+				Token::Walrus,
+				Token::Colon,
+				Token::Ident("title".into()),
+				Token::OpenBracket,
+				Token::Text("My Webpage".into()),
+				Token::CloseBracket,
+				Token::SemiColon,
+				// Line 2
+				Token::Colon,
+				Token::Ident("head".into()),
+				Token::OpenBracket,
+				Token::Andpersand,
+				Token::Ident("title".into()),
+				Token::CloseBracket,
+				// Line 3
+				Token::Colon,
+				Token::Ident("body".into()),
+				Token::OpenBracket,
+				Token::Colon,
+				Token::Ident("p".into()),
+				Token::OpenBracket,
+				Token::Text("&title".into()),
+				Token::CloseBracket,
 				Token::CloseBracket,
 			]
 		);

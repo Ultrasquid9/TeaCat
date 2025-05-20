@@ -1,3 +1,5 @@
+#![allow(clippy::tabs_in_doc_comments)]
+
 use std::error::Error;
 
 use parser::Ast;
@@ -6,7 +8,7 @@ pub mod lexer;
 pub mod parser;
 pub mod utils;
 
-const INPUT: &str = r#"
+pub const INPUT: &str = r#"
 # Comments use hashtags
 
 # Variables
@@ -29,7 +31,7 @@ const INPUT: &str = r#"
 :body[
 	:p[
 		# A backslash escapes the following character
-		\&title # will print "title" in the generated HTML 
+		\&title # will print "&title" in the generated HTML 
 
 		#:br[]
 

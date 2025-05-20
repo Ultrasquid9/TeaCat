@@ -116,11 +116,10 @@ fn tag(tokenstream: &mut TokenStream) -> AstNode {
 	})
 }
 
+#[cfg(test)]
 mod tests {
-	#[allow(unused)]
 	use super::*;
-	#[allow(unused)]
-	use crate::vecde;
+	use crate::{lexer::lex, vecde};
 
 	#[test]
 	fn variables() {
@@ -177,6 +176,87 @@ mod tests {
 					attributes: None,
 					contents: Ast::empty()
 				}),
+			])
+		);
+	}
+
+	#[test]
+	fn nested_tags() {
+		let tokenstream = vecde![
+			Token::Colon,
+			Token::Ident("a".into()),
+			Token::OpenBracket,
+			Token::Colon,
+			Token::Ident("b".into()),
+			Token::OpenBracket,
+			Token::CloseBracket,
+			Token::CloseBracket,
+			Token::Colon,
+			Token::Ident("c".into()),
+			Token::OpenBracket,
+			Token::CloseBracket,
+		];
+
+		let ast = Ast::parse(tokenstream);
+
+		assert_eq!(
+			ast,
+			Ast(vecde![
+				AstNode::Tag(Tag {
+					name: "a".into(),
+					attributes: None,
+					contents: Ast(vecde![AstNode::Tag(Tag {
+						name: "b".into(),
+						attributes: None,
+						contents: Ast::empty()
+					}),])
+				}),
+				AstNode::Tag(Tag {
+					name: "c".into(),
+					attributes: None,
+					contents: Ast::empty()
+				}),
+			])
+		);
+	}
+
+	#[test]
+	fn final_boss() {
+		// Simplified version of the main.rs example
+		let str = r#"
+		&title := :title[My Webpage];
+		:head[&title]
+		:body[:p[\&title]]
+		"#
+		.to_string();
+
+		let ast = Ast::parse(lex(str));
+
+		assert_eq!(
+			ast,
+			Ast(vecde![
+				AstNode::Var(Var {
+					name: "title".into(),
+					contents: Ast(vecde![AstNode::Tag(Tag {
+						name: "title".into(),
+						attributes: None,
+						contents: Ast(vecde![AstNode::text("My Webpage")])
+					})])
+				}),
+				AstNode::Tag(Tag {
+					name: "head".into(),
+					attributes: None,
+					contents: Ast(vecde![AstNode::AccessVar("title".into())])
+				}),
+				AstNode::Tag(Tag {
+					name: "body".into(),
+					attributes: None,
+					contents: Ast(vecde![AstNode::Tag(Tag {
+						name: "p".into(),
+						attributes: None,
+						contents: Ast(vecde![AstNode::text("&title")])
+					})])
+				})
 			])
 		);
 	}
