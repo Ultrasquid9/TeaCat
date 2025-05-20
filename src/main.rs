@@ -40,8 +40,8 @@ pub const INPUT: &str = r#"
 
 		# Use curly braces for tag attributes
 		:img{
-			#src: "https://www.w3schools.com/images/w3schools_green.jpg", 
-			#alt: "Test Image",
+			src: "https://www.w3schools.com/images/w3schools_green.jpg", 
+			alt: "Test Image",
 		} []
 	]
 ]

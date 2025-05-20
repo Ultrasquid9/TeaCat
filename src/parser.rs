@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-	lexer::{Token, TokenStream},
+	lexer::{StringLiteral, Token, TokenStream},
 	vecde,
 };
 
@@ -30,7 +30,7 @@ pub struct Var {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Attributes(pub HashMap<String, String>);
+pub struct Attributes(pub HashMap<String, StringLiteral>);
 
 impl Ast {
 	pub fn empty() -> Self {
@@ -62,6 +62,7 @@ impl Ast {
 				// These tokens are only useful if explicitly required by another,
 				// so they can be safely converted into text.
 				Token::Ident(ident) => AstNode::Text(ident),
+				Token::Stringliteral(strlit) => AstNode::Text(strlit.into_string()),
 				Token::OpenBracket => AstNode::text("["),
 				Token::CloseBracket => AstNode::text("]"),
 				Token::OpenBrace => AstNode::text("{"),
@@ -106,7 +107,7 @@ impl Attributes {
 		let mut rendered = String::new();
 
 		for (key, val) in self.0 {
-			rendered.push_str(&format!(" {key}=\"{val}\""));
+			rendered.push_str(&format!(" {key}={}", val.into_string()));
 		}
 
 		rendered
@@ -138,7 +139,7 @@ impl Attributes {
 						todo!("Error Handling");
 					};
 					let val = match tokenstream.0.pop_front() {
-						Some(Token::Text(val)) | Some(Token::Ident(val)) => val,
+						Some(Token::Stringliteral(val)) => val,
 						other => {
 							println!("Unexpected input in attributes: {other:?}");
 							todo!("Error Handling");
@@ -158,8 +159,8 @@ impl Attributes {
 	}
 }
 
-impl From<HashMap<String, String>> for Attributes {
-	fn from(value: HashMap<String, String>) -> Self {
+impl From<HashMap<String, StringLiteral>> for Attributes {
+	fn from(value: HashMap<String, StringLiteral>) -> Self {
 		Self(value)
 	}
 }
@@ -310,15 +311,15 @@ mod tests {
 
 	#[test]
 	fn attributes() {
-		let ast = Ast::parse(TokenStream::lex(":tag{x:1, y:2}[]".into()));
+		let ast = Ast::parse(TokenStream::lex(":tag{x:\"1\", y:\"2\"}[]".into()));
 
 		assert_eq!(
 			ast,
 			vecde![AstNode::Tag(Tag {
 				name: "tag".into(),
 				attributes: HashMap::from([
-					("x".to_string(), "1".to_string()),
-					("y".to_string(), "2".to_string()),
+					("x".to_string(), "1".into()),
+					("y".to_string(), "2".into()),
 				])
 				.into(),
 				contents: Ast::empty(),

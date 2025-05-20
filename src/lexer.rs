@@ -5,6 +5,8 @@ use nom::error::Error as NomError;
 
 use nom::bytes::complete::tag;
 
+const QUOTES: &[char] = &['\'', '"', '`'];
+
 #[derive(PartialEq, Eq, Debug)]
 pub struct TokenStream(pub VecDeque<Token>);
 
@@ -12,6 +14,7 @@ pub struct TokenStream(pub VecDeque<Token>);
 pub enum Token {
 	Ident(String),
 	Text(String),
+	Stringliteral(StringLiteral),
 
 	OpenBracket,
 	CloseBracket,
@@ -23,6 +26,12 @@ pub enum Token {
 	SemiColon,
 	Andpersand,
 	Comma,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct StringLiteral {
+	pub quotes: char,
+	pub content: String,
 }
 
 impl TokenStream {
@@ -53,6 +62,12 @@ impl TokenStream {
 				} else {
 					input.clear();
 				}
+				continue;
+			}
+
+			// Handling string literals
+			if matches!(current, Token::Stringliteral(_)) {
+				push_current_ch(&mut input, &mut current, &mut tokenstream);
 				continue;
 			}
 
@@ -96,6 +111,7 @@ impl Token {
 	fn string_mut(&mut self) -> Option<&mut String> {
 		Some(match self {
 			Self::Text(str) | Self::Ident(str) => str,
+			Self::Stringliteral(strlit) => &mut strlit.content,
 
 			_ => return None,
 		})
@@ -112,8 +128,47 @@ impl Token {
 	}
 }
 
+impl StringLiteral {
+	pub fn new(quotes: char) -> Self {
+		Self {
+			quotes,
+			content: String::new(),
+		}
+	}
+
+	pub fn into_string(&self) -> String {
+		format!("{}{}{}", self.quotes, self.content, self.quotes)
+	}
+}
+
+impl From<&str> for StringLiteral {
+	fn from(value: &str) -> Self {
+		Self {
+			quotes: '"',
+			content: value.to_string(),
+		}
+	}
+}
+
 fn push_current_ch(input: &mut String, current: &mut Token, tokenstream: &mut Vec<Token>) {
 	let ch = input.remove(0);
+
+	macro_rules! token_switcheroo {
+		($t:expr) => {
+			let token = replace(current, $t);
+			tokenstream.push(token);
+		};
+	}
+
+	// Handling String Literals
+	if QUOTES.contains(&ch) && !matches!(current, Token::Stringliteral(_)) {
+		token_switcheroo!(Token::Stringliteral(StringLiteral::new(ch)));
+		return;
+	}
+	if matches!(current, Token::Stringliteral(str) if str.quotes == ch) {
+		token_switcheroo!(Token::empty());
+		return;
+	}
 
 	// If the current Token does not store text, set it to one that does.
 	// - If the current Token implies an Ident, create one.
@@ -124,13 +179,11 @@ fn push_current_ch(input: &mut String, current: &mut Token, tokenstream: &mut Ve
 		} else {
 			Token::empty()
 		};
-		let token = replace(current, token);
-		tokenstream.push(token);
+		token_switcheroo!(token);
 	}
 	// An Ident cannot contain whitespace.
 	if matches!(current, Token::Ident(_)) && ch.is_whitespace() {
-		let token = replace(current, Token::empty());
-		tokenstream.push(token);
+		token_switcheroo!(Token::empty());
 	}
 
 	current.push_char(ch);
@@ -174,7 +227,7 @@ fn clean_tokens(tokens: &mut Vec<Token>) {
 
 	*tokens = tokens
 		.iter()
-		.filter(|token| !matches!(token, Token::Text(t) if t.trim().is_empty()))
+		.filter(|token| !matches!((*token).clone().string_mut(), Some(str) if str.is_empty()))
 		.cloned()
 		.collect();
 }
@@ -285,6 +338,18 @@ mod tests {
 				Token::CloseBracket,
 			]
 			.into(),
+		)
+	}
+
+	#[test]
+	fn strlit() {
+		assert_eq!(
+			TokenStream::lex("'input'".into()),
+			vecde![Token::Stringliteral(StringLiteral {
+				quotes: '\'',
+				content: "input".into()
+			})]
+			.into()
 		)
 	}
 
