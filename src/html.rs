@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::parser::{Ast, AstNode, Tag};
+use crate::parser::{Ast, AstNode, Attributes, Tag};
 
 #[derive(Debug, Clone)]
 pub struct Html(Vec<HtmlNode>);
@@ -14,7 +14,7 @@ pub enum HtmlNode {
 #[derive(Debug, Clone)]
 pub struct HtmlTag {
 	pub name: String,
-	pub attributes: HashMap<String, String>,
+	pub attributes: Attributes,
 	pub contents: Html,
 }
 
@@ -66,13 +66,12 @@ impl HtmlTag {
 	}
 
 	pub fn render(self) -> String {
-		let mut rendered = format!("<{}", self.name);
-
-		for (key, val) in self.attributes {
-			rendered.push_str(&format!(" {key}=\"{val}\""));
-		}
-
-		rendered.push_str(&format!(">{}</{}>", self.contents.render(), self.name));
-		rendered
+		format!(
+			"<{}{}>{}</{}>",
+			self.name,
+			self.attributes.render(),
+			self.contents.render(),
+			self.name
+		)
 	}
 }

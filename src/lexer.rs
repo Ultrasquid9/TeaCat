@@ -22,6 +22,7 @@ pub enum Token {
 	Colon,
 	SemiColon,
 	Andpersand,
+	Comma,
 }
 
 impl TokenStream {
@@ -145,6 +146,7 @@ fn rules(input: &mut String) -> Option<Token> {
 		(":", Token::Colon),
 		(";", Token::SemiColon),
 		("&", Token::Andpersand),
+		(",", Token::Comma),
 	];
 
 	for (key, token) in rules {
@@ -262,13 +264,38 @@ mod tests {
 	}
 
 	#[test]
+	fn attributes() {
+		let tokenstream = TokenStream::lex(":tag{x:1, y:2}[]".into());
+
+		assert_eq!(
+			tokenstream,
+			vecde![
+				Token::Colon,
+				Token::Ident("tag".into()),
+				Token::OpenBrace,
+				Token::Text("x".into()),
+				Token::Colon,
+				Token::Ident("1".into()),
+				Token::Comma,
+				Token::Text("y".into()),
+				Token::Colon,
+				Token::Ident("2".into()),
+				Token::CloseBrace,
+				Token::OpenBracket,
+				Token::CloseBracket,
+			]
+			.into(),
+		)
+	}
+
+	#[test]
 	fn final_boss() {
 		// Simplified version of the main.rs example
-		let str = r#"
+		let str = "
 		&title := :title[My Webpage];
 		:head[&title]
-		:body[:p[\&title]]
-		"#
+		:body[:p[\\&title]]
+		"
 		.to_string();
 
 		let tokenstream = TokenStream::lex(str);

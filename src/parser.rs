@@ -19,7 +19,7 @@ pub enum AstNode {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Tag {
 	pub name: String,
-	pub attributes: HashMap<String, String>,
+	pub attributes: Attributes,
 	pub contents: Ast,
 }
 
@@ -28,6 +28,9 @@ pub struct Var {
 	pub name: String,
 	pub contents: Ast,
 }
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Attributes(pub HashMap<String, String>);
 
 impl Ast {
 	pub fn empty() -> Self {
@@ -65,6 +68,7 @@ impl Ast {
 				Token::CloseBrace => AstNode::text("}"),
 				Token::SemiColon => AstNode::text(";"),
 				Token::Walrus => AstNode::text(":="),
+				Token::Comma => AstNode::text(","),
 			});
 		}
 
@@ -93,6 +97,73 @@ impl Var {
 	}
 }
 
+impl Attributes {
+	pub fn new() -> Self {
+		Self(HashMap::new())
+	}
+
+	pub fn render(self) -> String {
+		let mut rendered = String::new();
+
+		for (key, val) in self.0 {
+			rendered.push_str(&format!(" {key}=\"{val}\""));
+		}
+
+		rendered
+	}
+
+	fn parse(tokenstream: &mut TokenStream) -> Self {
+		let mut attributes = HashMap::new();
+
+		// Adding a comma here makes it easier to parse
+		tokenstream.0.push_front(Token::Comma);
+
+		loop {
+			let Some(token) = tokenstream.0.pop_front() else {
+				todo!("Error Handling")
+			};
+
+			match token {
+				Token::CloseBrace => break,
+				Token::Comma => {
+					let key = match tokenstream.0.pop_front() {
+						Some(Token::Text(key)) => key,
+						Some(Token::CloseBrace) => break,
+						other => {
+							println!("Unexpected input in attributes: {other:?}");
+							todo!("Error Handling");
+						}
+					};
+					let Some(Token::Colon) = tokenstream.0.pop_front() else {
+						todo!("Error Handling");
+					};
+					let val = match tokenstream.0.pop_front() {
+						Some(Token::Text(val)) | Some(Token::Ident(val)) => val,
+						other => {
+							println!("Unexpected input in attributes: {other:?}");
+							todo!("Error Handling");
+						}
+					};
+
+					attributes.insert(key, val);
+				}
+				other => {
+					println!("Unexpected input in attributes: {other:?}");
+					todo!("Error Handling");
+				}
+			}
+		}
+
+		Self(attributes)
+	}
+}
+
+impl From<HashMap<String, String>> for Attributes {
+	fn from(value: HashMap<String, String>) -> Self {
+		Self(value)
+	}
+}
+
 fn var(tokenstream: &mut TokenStream) -> AstNode {
 	let Some(Token::Ident(name)) = tokenstream.0.pop_front() else {
 		return AstNode::text("&");
@@ -112,15 +183,20 @@ fn tag(tokenstream: &mut TokenStream) -> AstNode {
 	let Some(Token::Ident(name)) = tokenstream.0.pop_front() else {
 		return AstNode::text(":");
 	};
+
+	let mut attributes = Attributes::new();
+	if let Some(Token::OpenBrace) = tokenstream.0.front() {
+		tokenstream.0.pop_front();
+		attributes = Attributes::parse(tokenstream)
+	}
+
 	let Some(Token::OpenBracket) = tokenstream.0.pop_front() else {
 		return AstNode::Text(":".to_string() + &name);
 	};
 
-	// TODO: Attributes
-
 	AstNode::Tag(Tag {
 		name,
-		attributes: HashMap::new(),
+		attributes,
 		contents: Ast::parse_until(tokenstream, Some(Token::CloseBracket)),
 	})
 }
@@ -177,12 +253,12 @@ mod tests {
 			vecde![
 				AstNode::Tag(Tag {
 					name: "a".into(),
-					attributes: HashMap::new(),
+					attributes: Attributes::new(),
 					contents: Ast::empty()
 				}),
 				AstNode::Tag(Tag {
 					name: "b".into(),
-					attributes: HashMap::new(),
+					attributes: Attributes::new(),
 					contents: Ast::empty()
 				}),
 			]
@@ -214,22 +290,41 @@ mod tests {
 			vecde![
 				AstNode::Tag(Tag {
 					name: "a".into(),
-					attributes: HashMap::new(),
+					attributes: Attributes::new(),
 					contents: vecde![AstNode::Tag(Tag {
 						name: "b".into(),
-						attributes: HashMap::new(),
+						attributes: Attributes::new(),
 						contents: Ast::empty()
 					}),]
 					.into()
 				}),
 				AstNode::Tag(Tag {
 					name: "c".into(),
-					attributes: HashMap::new(),
+					attributes: Attributes::new(),
 					contents: Ast::empty()
 				}),
 			]
 			.into()
 		);
+	}
+
+	#[test]
+	fn attributes() {
+		let ast = Ast::parse(TokenStream::lex(":tag{x:1, y:2}[]".into()));
+
+		assert_eq!(
+			ast,
+			vecde![AstNode::Tag(Tag {
+				name: "tag".into(),
+				attributes: HashMap::from([
+					("x".to_string(), "1".to_string()),
+					("y".to_string(), "2".to_string()),
+				])
+				.into(),
+				contents: Ast::empty(),
+			})]
+			.into()
+		)
 	}
 
 	#[test]
@@ -251,22 +346,22 @@ mod tests {
 					name: "title".into(),
 					contents: vecde![AstNode::Tag(Tag {
 						name: "title".into(),
-						attributes: HashMap::new(),
+						attributes: Attributes::new(),
 						contents: vecde![AstNode::text("My Webpage")].into()
 					})]
 					.into()
 				}),
 				AstNode::Tag(Tag {
 					name: "head".into(),
-					attributes: HashMap::new(),
+					attributes: Attributes::new(),
 					contents: vecde![AstNode::AccessVar("title".into())].into()
 				}),
 				AstNode::Tag(Tag {
 					name: "body".into(),
-					attributes: HashMap::new(),
+					attributes: Attributes::new(),
 					contents: vecde![AstNode::Tag(Tag {
 						name: "p".into(),
-						attributes: HashMap::new(),
+						attributes: Attributes::new(),
 						contents: vecde![AstNode::text("&title")].into()
 					})]
 					.into()
