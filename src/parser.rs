@@ -43,16 +43,31 @@ impl Ast {
 				break;
 			}
 
-			match token {
-				Token::Andpersand => nodes.push(var(tokenstream)),
+			nodes.push(match token {
+				Token::Andpersand => var(tokenstream),
+				Token::Colon => tag(tokenstream),
 
-				Token::Text(text) => nodes.push(AstNode::Text(text)),
+				Token::Text(text) => AstNode::Text(text),
 
-				_ => todo!(),
-			}
+				// These tokens are only useful if explicitly required by another,
+				// so they can be safely converted into text.
+				Token::Ident(ident) => AstNode::Text(ident),
+				Token::OpenBracket => AstNode::text("["),
+				Token::CloseBracket => AstNode::text("]"),
+				Token::OpenBrace => AstNode::text("{"),
+				Token::CloseBrace => AstNode::text("}"),
+				Token::SemiColon => AstNode::text(";"),
+				Token::Walrus => AstNode::text(":="),
+			});
 		}
 
 		Self(nodes.into())
+	}
+}
+
+impl AstNode {
+	fn text(str: &str) -> Self {
+		Self::Text(str.into())
 	}
 }
 
@@ -67,8 +82,7 @@ impl Var {
 
 fn var(tokenstream: &mut TokenStream) -> AstNode {
 	let Some(Token::Ident(name)) = tokenstream.pop_front() else {
-		println!("Andpercand must be followed by an Ident!");
-		todo!("Error Handling")
+		return AstNode::text("&")
 	};
 
 	if let Some(Token::Walrus) = tokenstream.pop_front() {
@@ -76,6 +90,23 @@ fn var(tokenstream: &mut TokenStream) -> AstNode {
 	} else {
 		AstNode::AccessVar(name)
 	}
+}
+
+fn tag(tokenstream: &mut TokenStream) -> AstNode {
+	let Some(Token::Ident(name)) = tokenstream.pop_front() else {
+		return AstNode::text(":")
+	};
+	let Some(Token::OpenBracket) = tokenstream.pop_front() else {
+		return AstNode::Text(":".to_string() + &name)
+	};
+
+	// TODO: Attributes
+
+	AstNode::Tag(Tag { 
+		name, 
+		attributes: None, 
+		contents: Ast::parse_until(tokenstream, Some(Token::CloseBracket))
+	})
 }
 
 mod tests {

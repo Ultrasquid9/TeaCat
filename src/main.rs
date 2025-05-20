@@ -33,10 +33,10 @@ const INPUT: &str = r#"
 		:br[]
 
 		# Use curly braces for tag attributes
-		:img{
-			src="https://www.w3schools.com/images/w3schools_green.jpg", 
-			alt="Test Image",
-		} []
+		#:img{
+		#	src="https://www.w3schools.com/images/w3schools_green.jpg", 
+		#	alt="Test Image",
+		#} []
 	]
 ]
 "#;
