@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use crate::{
 	lexer::{Token, TokenStream},
@@ -19,7 +19,7 @@ pub enum AstNode {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Tag {
 	pub name: String,
-	pub attributes: Option<String>,
+	pub attributes: HashMap<String, String>,
 	pub contents: Ast,
 }
 
@@ -114,7 +114,7 @@ fn tag(tokenstream: &mut TokenStream) -> AstNode {
 
 	AstNode::Tag(Tag {
 		name,
-		attributes: None,
+		attributes: HashMap::new(),
 		contents: Ast::parse_until(tokenstream, Some(Token::CloseBracket)),
 	})
 }
@@ -171,12 +171,12 @@ mod tests {
 			Ast(vecde![
 				AstNode::Tag(Tag {
 					name: "a".into(),
-					attributes: None,
+					attributes: HashMap::new(),
 					contents: Ast::empty()
 				}),
 				AstNode::Tag(Tag {
 					name: "b".into(),
-					attributes: None,
+					attributes: HashMap::new(),
 					contents: Ast::empty()
 				}),
 			])
@@ -207,16 +207,16 @@ mod tests {
 			Ast(vecde![
 				AstNode::Tag(Tag {
 					name: "a".into(),
-					attributes: None,
+					attributes: HashMap::new(),
 					contents: Ast(vecde![AstNode::Tag(Tag {
 						name: "b".into(),
-						attributes: None,
+						attributes: HashMap::new(),
 						contents: Ast::empty()
 					}),])
 				}),
 				AstNode::Tag(Tag {
 					name: "c".into(),
-					attributes: None,
+					attributes: HashMap::new(),
 					contents: Ast::empty()
 				}),
 			])
@@ -242,21 +242,21 @@ mod tests {
 					name: "title".into(),
 					contents: Ast(vecde![AstNode::Tag(Tag {
 						name: "title".into(),
-						attributes: None,
+						attributes: HashMap::new(),
 						contents: Ast(vecde![AstNode::text("My Webpage")])
 					})])
 				}),
 				AstNode::Tag(Tag {
 					name: "head".into(),
-					attributes: None,
+					attributes: HashMap::new(),
 					contents: Ast(vecde![AstNode::AccessVar("title".into())])
 				}),
 				AstNode::Tag(Tag {
 					name: "body".into(),
-					attributes: None,
+					attributes: HashMap::new(),
 					contents: Ast(vecde![AstNode::Tag(Tag {
 						name: "p".into(),
-						attributes: None,
+						attributes: HashMap::new(),
 						contents: Ast(vecde![AstNode::text("&title")])
 					})])
 				})

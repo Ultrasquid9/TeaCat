@@ -1,9 +1,11 @@
 #![allow(clippy::tabs_in_doc_comments)]
 
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
+use html::Html;
 use parser::Ast;
 
+pub mod html;
 pub mod lexer;
 pub mod parser;
 pub mod utils;
@@ -49,10 +51,9 @@ pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 fn main() -> CatResult<()> {
 	let tokenstream = lexer::lex(INPUT.into());
 	let ast = Ast::parse(tokenstream);
+	let html = Html::expand(ast, &HashMap::new());
 
-	for node in ast.0 {
-		println!("{node:?}\n")
-	}
+	println!("{}", html.render());
 
 	Ok(())
 }
