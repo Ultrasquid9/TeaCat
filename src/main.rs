@@ -3,6 +3,7 @@
 use std::{collections::HashMap, error::Error};
 
 use html::Html;
+use lexer::TokenStream;
 use parser::Ast;
 
 pub mod html;
@@ -49,7 +50,7 @@ pub const INPUT: &str = r#"
 pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 fn main() -> CatResult<()> {
-	let tokenstream = lexer::lex(INPUT.into());
+	let tokenstream = TokenStream::lex(INPUT.into());
 	let ast = Ast::parse(tokenstream);
 	let html = Html::expand(ast, &HashMap::new());
 

@@ -128,7 +128,7 @@ fn tag(tokenstream: &mut TokenStream) -> AstNode {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{lexer::lex, vecde};
+	use crate::{lexer::TokenStream, vecde};
 
 	#[test]
 	fn variables() {
@@ -242,7 +242,7 @@ mod tests {
 		"
 		.to_string();
 
-		let ast = Ast::parse(lex(str));
+		let ast = Ast::parse(TokenStream::lex(str));
 
 		assert_eq!(
 			ast,

@@ -24,6 +24,57 @@ pub enum Token {
 	Andpersand,
 }
 
+impl TokenStream {
+	pub fn lex(mut input: String) -> Self {
+		let mut tokenstream = vec![];
+		let mut current = Token::empty();
+
+		let mut escaped = false;
+
+		while !input.is_empty() {
+			// Handling the backslash escape
+			// TODO: \n, \t, etc
+			if escaped {
+				push_current_ch(&mut input, &mut current, &mut tokenstream);
+				escaped = false;
+				continue;
+			}
+			if str_starts_with(&input, "\\") {
+				input.remove(0);
+				escaped = true;
+				continue;
+			}
+
+			// Handling comments
+			if str_starts_with(&input, "#") {
+				if let Some((_, str)) = input.split_once("\n") {
+					input = str.into();
+				} else {
+					input.clear();
+				}
+				continue;
+			}
+
+			// Checks for one of the operators/keywords is present
+			if let Some(token) = rules(&mut input) {
+				let token = replace(&mut current, token);
+				tokenstream.push(token);
+				continue;
+			}
+
+			// No operators/keywords found, so the current char is inserted into the current token
+			push_current_ch(&mut input, &mut current, &mut tokenstream);
+		}
+
+		// Adding the current token
+		tokenstream.push(current);
+		// Removing empty tokens
+		clean_tokens(&mut tokenstream);
+
+		tokenstream.into()
+	}
+}
+
 impl From<Vec<Token>> for TokenStream {
 	fn from(value: Vec<Token>) -> Self {
 		Self(value.into())
@@ -58,55 +109,6 @@ impl Token {
 	fn creates_ident(&self) -> bool {
 		matches!(self, Self::Colon | Self::Andpersand)
 	}
-}
-
-pub fn lex(mut input: String) -> TokenStream {
-	let mut tokenstream = vec![];
-	let mut current = Token::empty();
-
-	let mut escaped = false;
-
-	while !input.is_empty() {
-		// Handling the backslash escape
-		// TODO: \n, \t, etc
-		if escaped {
-			push_current_ch(&mut input, &mut current, &mut tokenstream);
-			escaped = false;
-			continue;
-		}
-		if str_starts_with(&input, "\\") {
-			input.remove(0);
-			escaped = true;
-			continue;
-		}
-
-		// Handling comments
-		if str_starts_with(&input, "#") {
-			if let Some((_, str)) = input.split_once("\n") {
-				input = str.into();
-			} else {
-				input.clear();
-			}
-			continue;
-		}
-
-		// Checks for one of the operators/keywords is present
-		if let Some(token) = rules(&mut input) {
-			let token = replace(&mut current, token);
-			tokenstream.push(token);
-			continue;
-		}
-
-		// No operators/keywords found, so the current char is inserted into the current token
-		push_current_ch(&mut input, &mut current, &mut tokenstream);
-	}
-
-	// Adding the current token
-	tokenstream.push(current);
-	// Removing empty tokens
-	clean_tokens(&mut tokenstream);
-
-	tokenstream.into()
 }
 
 fn push_current_ch(input: &mut String, current: &mut Token, tokenstream: &mut Vec<Token>) {
@@ -188,7 +190,7 @@ mod tests {
 		"
 		.to_string();
 
-		let tokenstream = lex(str);
+		let tokenstream = TokenStream::lex(str);
 
 		assert_eq!(
 			tokenstream,
@@ -220,7 +222,7 @@ mod tests {
 		"
 		.to_string();
 
-		let tokenstream = lex(str);
+		let tokenstream = TokenStream::lex(str);
 
 		assert_eq!(
 			tokenstream,
@@ -241,7 +243,7 @@ mod tests {
 		"
 		.to_string();
 
-		let tokenstream = lex(str);
+		let tokenstream = TokenStream::lex(str);
 
 		assert_eq!(
 			tokenstream,
@@ -269,7 +271,7 @@ mod tests {
 		"#
 		.to_string();
 
-		let tokenstream = lex(str);
+		let tokenstream = TokenStream::lex(str);
 
 		assert_eq!(
 			tokenstream,
