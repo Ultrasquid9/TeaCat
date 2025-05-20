@@ -60,16 +60,6 @@ pub fn lex(mut input: String) -> TokenStream {
 	let mut escaped = false;
 
 	while !input.is_empty() {
-		// Handling comments
-		if str_starts_with(&input, "#") {
-			if let Some((_, str)) = input.split_once("\n") {
-				input = str.into();
-			} else {
-				input.clear();
-			}
-			continue;
-		}
-
 		// Handling the backslash escape
 		// TODO: \n, \t, etc
 		if escaped {
@@ -79,6 +69,16 @@ pub fn lex(mut input: String) -> TokenStream {
 		}
 		if str_starts_with(&input, "\\") {
 			escaped = true;
+			continue;
+		}
+
+		// Handling comments
+		if str_starts_with(&input, "#") {
+			if let Some((_, str)) = input.split_once("\n") {
+				input = str.into();
+			} else {
+				input.clear();
+			}
 			continue;
 		}
 
