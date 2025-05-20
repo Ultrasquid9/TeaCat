@@ -92,7 +92,10 @@ fn var(tokenstream: &mut TokenStream) -> AstNode {
 		return AstNode::text("&");
 	};
 
-	if let Some(Token::Walrus) = tokenstream.pop_front() {
+	// DONT pop from front until we know that the token is one we want 
+	if let Some(Token::Walrus) = tokenstream.front() {
+		// Now we know that it's safe to remove 
+		tokenstream.pop_front();
 		AstNode::Var(Var::new(name, tokenstream))
 	} else {
 		AstNode::AccessVar(name)

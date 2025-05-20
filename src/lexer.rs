@@ -91,11 +91,7 @@ pub fn lex(mut input: String) -> TokenStream {
 	// Adding the current token
 	tokenstream.push(current);
 	// Removing empty tokens
-	tokenstream = tokenstream
-		.iter()
-		.filter(|token| !matches!(token, Token::Text(t) if t.trim().is_empty()))
-		.cloned()
-		.collect();
+	clean_tokens(&mut tokenstream);
 
 	tokenstream.into()
 }
@@ -146,8 +142,24 @@ fn rules(input: &mut String) -> Option<Token> {
 	None
 }
 
+/// Checks if the input starts with the provided pattern 
 fn str_starts_with(input: &str, pat: &str) -> bool {
 	tag::<&str, &str, NomError<_>>(pat)(input).is_ok()
+}
+
+/// Removing leading and trailing whitespace from tokens
+fn clean_tokens(tokens: &mut Vec<Token>) {
+	for token in &mut *tokens {
+		if let Some(str) = token.string_mut() {
+			*str = str.trim().into();
+		}
+	}
+
+	*tokens = tokens
+		.iter()
+		.filter(|token| !matches!(token, Token::Text(t) if t.trim().is_empty()))
+		.cloned()
+		.collect();
 }
 
 #[cfg(test)]
@@ -171,7 +183,7 @@ mod tests {
 				Token::Andpersand,
 				Token::Ident("x".into()),
 				Token::Walrus,
-				Token::Text(" X".into()),
+				Token::Text("X".into()),
 				Token::SemiColon,
 				Token::Andpersand,
 				Token::Ident("x".into()),
@@ -201,7 +213,7 @@ mod tests {
 			vecde![
 				Token::Andpersand,
 				Token::Ident("x".into()),
-				Token::Text("\n\t\t&x\n\t\t".into()),
+				Token::Text("&x".into()),
 			]
 		);
 	}
