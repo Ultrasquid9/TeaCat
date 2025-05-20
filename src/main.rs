@@ -1,19 +1,24 @@
-use eval::eval;
-use expansion::variables;
-use lexer::lex;
+#![allow(clippy::tabs_in_doc_comments)]
 
-pub mod eval;
-pub mod expansion;
+use std::{collections::HashMap, error::Error};
+
+use html::Html;
+use lexer::TokenStream;
+use parser::Ast;
+
+pub mod html;
 pub mod lexer;
+pub mod parser;
+pub mod utils;
 
-const INPUT: &str = r#"
+pub const INPUT: &str = r#"
 # Comments use hashtags
 
 # Variables
-$hello_world Hello, World!;
+&hello_world := Hello, World!;
 
 # Just about anything can be assigned to a variable
-$title :title[
+&title := :title[
 	My Webpage
 ];
 
@@ -29,24 +34,27 @@ $title :title[
 :body[
 	:p[
 		# A backslash escapes the following character
-		\&title # will print "title" in the generated HTML 
+		\&title # will print "&title" in the generated HTML 
 
 		:br[]
 
 		# Use curly braces for tag attributes
 		:img{
-			src="https://www.w3schools.com/images/w3schools_green.jpg", 
-			alt="Test Image",
+			src: "https://www.w3schools.com/images/w3schools_green.jpg", 
+			alt: "Test Image",
 		} []
 	]
 ]
 "#;
 
-fn main() {
-	let tokens = lex(INPUT.into());
-	let tokens = variables(tokens);
-	let html = eval(tokens);
+pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
-	println!("{}", html);
-	_ = std::fs::write("./index.html", html);
+fn main() -> CatResult<()> {
+	let tokenstream = TokenStream::lex(INPUT.into());
+	let ast = Ast::parse(tokenstream);
+	let html = Html::expand(ast, &HashMap::new());
+
+	println!("{}", html.render());
+
+	Ok(())
 }
