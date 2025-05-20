@@ -31,7 +31,7 @@ pub struct Var {
 
 impl Ast {
 	pub fn empty() -> Self {
-		Self(vecde![])
+		vecde![].into()
 	}
 
 	pub fn parse(mut tokenstream: TokenStream) -> Self {
@@ -41,8 +41,8 @@ impl Ast {
 	fn parse_until(tokenstream: &mut TokenStream, until: Option<Token>) -> Self {
 		let mut nodes = vec![];
 
-		while !tokenstream.is_empty() {
-			let Some(token) = tokenstream.pop_front() else {
+		while !tokenstream.0.is_empty() {
+			let Some(token) = tokenstream.0.pop_front() else {
 				todo!("Error handling")
 			};
 
@@ -72,6 +72,12 @@ impl Ast {
 	}
 }
 
+impl From<VecDeque<AstNode>> for Ast {
+	fn from(value: VecDeque<AstNode>) -> Self {
+		Self(value)
+	}
+}
+
 impl AstNode {
 	fn text(str: &str) -> Self {
 		Self::Text(str.into())
@@ -88,14 +94,14 @@ impl Var {
 }
 
 fn var(tokenstream: &mut TokenStream) -> AstNode {
-	let Some(Token::Ident(name)) = tokenstream.pop_front() else {
+	let Some(Token::Ident(name)) = tokenstream.0.pop_front() else {
 		return AstNode::text("&");
 	};
 
-	// DONT pop from front until we know that the token is one we want 
-	if let Some(Token::Walrus) = tokenstream.front() {
-		// Now we know that it's safe to remove 
-		tokenstream.pop_front();
+	// DONT pop from front until we know that the token is one we want
+	if let Some(Token::Walrus) = tokenstream.0.front() {
+		// Now we know that it's safe to remove
+		tokenstream.0.pop_front();
 		AstNode::Var(Var::new(name, tokenstream))
 	} else {
 		AstNode::AccessVar(name)
@@ -103,10 +109,10 @@ fn var(tokenstream: &mut TokenStream) -> AstNode {
 }
 
 fn tag(tokenstream: &mut TokenStream) -> AstNode {
-	let Some(Token::Ident(name)) = tokenstream.pop_front() else {
+	let Some(Token::Ident(name)) = tokenstream.0.pop_front() else {
 		return AstNode::text(":");
 	};
-	let Some(Token::OpenBracket) = tokenstream.pop_front() else {
+	let Some(Token::OpenBracket) = tokenstream.0.pop_front() else {
 		return AstNode::Text(":".to_string() + &name);
 	};
 
@@ -136,18 +142,18 @@ mod tests {
 			Token::Ident("x".into()),
 		];
 
-		let ast = Ast::parse(tokenstream);
+		let ast = Ast::parse(tokenstream.into());
 
 		assert_eq!(
 			ast,
-			Ast(vec![
+			vecde![
 				AstNode::Var(Var {
 					name: "x".into(),
-					contents: Ast(vec![AstNode::Text(" X".into())].into())
+					contents: vecde![AstNode::Text(" X".into())].into()
 				}),
 				AstNode::AccessVar("x".into()),
 			]
-			.into())
+			.into()
 		);
 	}
 
@@ -164,11 +170,11 @@ mod tests {
 			Token::CloseBracket,
 		];
 
-		let ast = Ast::parse(tokenstream);
+		let ast = Ast::parse(tokenstream.into());
 
 		assert_eq!(
 			ast,
-			Ast(vecde![
+			vecde![
 				AstNode::Tag(Tag {
 					name: "a".into(),
 					attributes: HashMap::new(),
@@ -179,7 +185,8 @@ mod tests {
 					attributes: HashMap::new(),
 					contents: Ast::empty()
 				}),
-			])
+			]
+			.into()
 		);
 	}
 
@@ -200,67 +207,72 @@ mod tests {
 			Token::CloseBracket,
 		];
 
-		let ast = Ast::parse(tokenstream);
+		let ast = Ast::parse(tokenstream.into());
 
 		assert_eq!(
 			ast,
-			Ast(vecde![
+			vecde![
 				AstNode::Tag(Tag {
 					name: "a".into(),
 					attributes: HashMap::new(),
-					contents: Ast(vecde![AstNode::Tag(Tag {
+					contents: vecde![AstNode::Tag(Tag {
 						name: "b".into(),
 						attributes: HashMap::new(),
 						contents: Ast::empty()
-					}),])
+					}),]
+					.into()
 				}),
 				AstNode::Tag(Tag {
 					name: "c".into(),
 					attributes: HashMap::new(),
 					contents: Ast::empty()
 				}),
-			])
+			]
+			.into()
 		);
 	}
 
 	#[test]
 	fn final_boss() {
 		// Simplified version of the main.rs example
-		let str = r#"
+		let str = "
 		&title := :title[My Webpage];
 		:head[&title]
-		:body[:p[\&title]]
-		"#
+		:body[:p[\\&title]]
+		"
 		.to_string();
 
 		let ast = Ast::parse(lex(str));
 
 		assert_eq!(
 			ast,
-			Ast(vecde![
+			vecde![
 				AstNode::Var(Var {
 					name: "title".into(),
-					contents: Ast(vecde![AstNode::Tag(Tag {
+					contents: vecde![AstNode::Tag(Tag {
 						name: "title".into(),
 						attributes: HashMap::new(),
-						contents: Ast(vecde![AstNode::text("My Webpage")])
-					})])
+						contents: vecde![AstNode::text("My Webpage")].into()
+					})]
+					.into()
 				}),
 				AstNode::Tag(Tag {
 					name: "head".into(),
 					attributes: HashMap::new(),
-					contents: Ast(vecde![AstNode::AccessVar("title".into())])
+					contents: vecde![AstNode::AccessVar("title".into())].into()
 				}),
 				AstNode::Tag(Tag {
 					name: "body".into(),
 					attributes: HashMap::new(),
-					contents: Ast(vecde![AstNode::Tag(Tag {
+					contents: vecde![AstNode::Tag(Tag {
 						name: "p".into(),
 						attributes: HashMap::new(),
-						contents: Ast(vecde![AstNode::text("&title")])
-					})])
+						contents: vecde![AstNode::text("&title")].into()
+					})]
+					.into()
 				})
-			])
+			]
+			.into()
 		);
 	}
 }

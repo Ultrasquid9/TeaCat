@@ -5,7 +5,8 @@ use nom::error::Error as NomError;
 
 use nom::bytes::complete::tag;
 
-pub type TokenStream = VecDeque<Token>;
+#[derive(PartialEq, Eq, Debug)]
+pub struct TokenStream(pub VecDeque<Token>);
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Token {
@@ -21,6 +22,18 @@ pub enum Token {
 	Colon,
 	SemiColon,
 	Andpersand,
+}
+
+impl From<Vec<Token>> for TokenStream {
+	fn from(value: Vec<Token>) -> Self {
+		Self(value.into())
+	}
+}
+
+impl From<VecDeque<Token>> for TokenStream {
+	fn from(value: VecDeque<Token>) -> Self {
+		Self(value)
+	}
 }
 
 impl Token {
@@ -142,7 +155,7 @@ fn rules(input: &mut String) -> Option<Token> {
 	None
 }
 
-/// Checks if the input starts with the provided pattern 
+/// Checks if the input starts with the provided pattern
 fn str_starts_with(input: &str, pat: &str) -> bool {
 	tag::<&str, &str, NomError<_>>(pat)(input).is_ok()
 }
@@ -188,6 +201,7 @@ mod tests {
 				Token::Andpersand,
 				Token::Ident("x".into()),
 			]
+			.into()
 		);
 	}
 
@@ -215,6 +229,7 @@ mod tests {
 				Token::Ident("x".into()),
 				Token::Text("&x".into()),
 			]
+			.into()
 		);
 	}
 
@@ -240,6 +255,7 @@ mod tests {
 				Token::OpenBracket,
 				Token::CloseBracket,
 			]
+			.into()
 		);
 	}
 
@@ -286,6 +302,7 @@ mod tests {
 				Token::CloseBracket,
 				Token::CloseBracket,
 			]
+			.into()
 		);
 	}
 }

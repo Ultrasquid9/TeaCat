@@ -61,7 +61,7 @@ impl HtmlTag {
 		Self {
 			name: tag.name,
 			attributes: tag.attributes,
-			contents: Html::expand(tag.contents, vars)
+			contents: Html::expand(tag.contents, vars),
 		}
 	}
 
