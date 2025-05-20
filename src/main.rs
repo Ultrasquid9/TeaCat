@@ -1,6 +1,9 @@
 use std::error::Error;
 
+use parser::Ast;
+
 pub mod lexer;
+pub mod parser;
 
 const INPUT: &str = r#"
 # Comments use hashtags
@@ -42,11 +45,11 @@ pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 fn main() -> CatResult<()> {
 	let tokenstream = lexer::lex(INPUT.into());
-	for token in tokenstream {
-		println!("{token:?}")
-	}
+	let ast = Ast::parse(tokenstream);
 
-/* 	let tokens = lex(INPUT.into());
+	println!("{ast:?}");
+
+	/* 	let tokens = lex(INPUT.into());
 	let tokens = variables(tokens);
 	let html = eval(tokens);
 

@@ -1,10 +1,12 @@
+use std::collections::VecDeque;
+
 use nom::error::Error as NomError;
 
 use nom::bytes::complete::tag;
 
-pub type TokenStream = Vec<Token>;
+pub type TokenStream = VecDeque<Token>;
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Token {
 	Ident(String),
 	Text(String),
@@ -18,11 +20,13 @@ pub enum Token {
 	Colon,
 	SemiColon,
 	Andpersand,
-
-	None,
 }
 
 impl Token {
+	fn empty() -> Self {
+		Self::Text("".into())
+	}
+
 	fn string_mut(&mut self) -> Option<&mut String> {
 		Some(match self {
 			Self::Text(str) | Self::Ident(str) => str,
@@ -44,7 +48,7 @@ impl Token {
 
 pub fn lex(mut input: String) -> TokenStream {
 	let mut tokenstream = vec![];
-	let mut current = Token::None;
+	let mut current = Token::empty();
 
 	macro_rules! token_switcheroo {
 		($new:expr) => {{
@@ -55,7 +59,7 @@ pub fn lex(mut input: String) -> TokenStream {
 
 	let mut escaped = false;
 
-	while input.len() > 0 {
+	while !input.is_empty() {
 		// Handling comments
 		if str_starts_with(&input, "#") {
 			if let Some((_, str)) = input.split_once("\n") {
@@ -94,20 +98,28 @@ pub fn lex(mut input: String) -> TokenStream {
 			let token = if current.creates_ident() {
 				Token::Ident("".into())
 			} else {
-				Token::Text("".into())
+				Token::empty()
 			};
 			token_switcheroo!(token);
 		}
 		// An Ident cannot contain whitespace.
 		if matches!(current, Token::Ident(_)) && ch.is_whitespace() {
-			token_switcheroo!(Token::Text("".into()))
+			token_switcheroo!(Token::empty())
 		}
 
 		current.push_char(ch);
 	}
 
+	// Adding the current token
 	tokenstream.push(current);
-	tokenstream
+	// Removing empty tokens
+	tokenstream = tokenstream
+		.iter()
+		.filter(|token| !matches!(token, Token::Text(t) if t.trim().is_empty()))
+		.cloned()
+		.collect();
+
+	tokenstream.into()
 }
 
 fn rules(input: &mut String) -> Option<Token> {
@@ -136,9 +148,38 @@ fn str_starts_with(input: &str, pat: &str) -> bool {
 	tag::<&str, &str, NomError<_>>(pat)(input).is_ok()
 }
 
-#[test]
-fn test() {
-	assert_eq!(rules(&mut "nothing".into()), None);
-	assert_eq!(rules(&mut ":=".into()), Some(Token::Walrus));
-	assert_eq!(rules(&mut "ab := cd".into()), None);
+mod tests {
+	#[allow(unused)]
+	use super::*;
+
+	#[test]
+	fn variables() {
+		let str = "
+		&x := X;
+		&x
+		"
+		.to_string();
+
+		let tokenstream = crate::lexer::lex(str);
+
+		assert_eq!(
+			tokenstream,
+			VecDeque::from(vec![
+				Token::Andpersand,
+				Token::Ident("x".into()),
+				Token::Walrus,
+				Token::Text(" X".into()),
+				Token::SemiColon,
+				Token::Andpersand,
+				Token::Ident("x".into()),
+			])
+		);
+	}
+
+	#[test]
+	fn rule() {
+		assert_eq!(rules(&mut "nothing".into()), None);
+		assert_eq!(rules(&mut ":=".into()), Some(Token::Walrus));
+		assert_eq!(rules(&mut "ab := cd".into()), None);
+	}
 }
