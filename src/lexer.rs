@@ -68,6 +68,7 @@ pub fn lex(mut input: String) -> TokenStream {
 			continue;
 		}
 		if str_starts_with(&input, "\\") {
+			input.remove(0);
 			escaped = true;
 			continue;
 		}
@@ -151,6 +152,8 @@ fn str_starts_with(input: &str, pat: &str) -> bool {
 mod tests {
 	#[allow(unused)]
 	use super::*;
+	#[allow(unused)]
+	use crate::vecde;
 
 	#[test]
 	fn variables() {
@@ -160,11 +163,11 @@ mod tests {
 		"
 		.to_string();
 
-		let tokenstream = crate::lexer::lex(str);
+		let tokenstream = lex(str);
 
 		assert_eq!(
 			tokenstream,
-			VecDeque::from(vec![
+			vecde![
 				Token::Andpersand,
 				Token::Ident("x".into()),
 				Token::Walrus,
@@ -172,7 +175,7 @@ mod tests {
 				Token::SemiColon,
 				Token::Andpersand,
 				Token::Ident("x".into()),
-			])
+			]
 		);
 	}
 
@@ -181,5 +184,50 @@ mod tests {
 		assert_eq!(rules(&mut "nothing".into()), None);
 		assert_eq!(rules(&mut ":=".into()), Some(Token::Walrus));
 		assert_eq!(rules(&mut "ab := cd".into()), None);
+	}
+
+	#[test]
+	fn escape() {
+		let str = "
+		&x
+		\\&x
+		"
+		.to_string();
+
+		let tokenstream = lex(str);
+
+		assert_eq!(
+			tokenstream,
+			vecde![
+				Token::Andpersand,
+				Token::Ident("x".into()),
+				Token::Text("\n\t\t&x\n\t\t".into()),
+			]
+		);
+	}
+
+	#[test]
+	fn multi_tags() {
+		let str = "
+		:a[]
+		:b[]
+		"
+		.to_string();
+
+		let tokenstream = lex(str);
+
+		assert_eq!(
+			tokenstream,
+			vecde![
+				Token::Colon,
+				Token::Ident("a".into()),
+				Token::OpenBracket,
+				Token::CloseBracket,
+				Token::Colon,
+				Token::Ident("b".into()),
+				Token::OpenBracket,
+				Token::CloseBracket,
+			]
+		);
 	}
 }

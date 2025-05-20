@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use crate::lexer::{Token, TokenStream};
+use crate::{
+	lexer::{Token, TokenStream},
+	vecde,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Ast(pub VecDeque<AstNode>);
@@ -27,6 +30,10 @@ pub struct Var {
 }
 
 impl Ast {
+	pub fn empty() -> Self {
+		Self(vecde![])
+	}
+
 	pub fn parse(mut tokenstream: TokenStream) -> Self {
 		Self::parse_until(&mut tokenstream, None)
 	}
@@ -82,7 +89,7 @@ impl Var {
 
 fn var(tokenstream: &mut TokenStream) -> AstNode {
 	let Some(Token::Ident(name)) = tokenstream.pop_front() else {
-		return AstNode::text("&")
+		return AstNode::text("&");
 	};
 
 	if let Some(Token::Walrus) = tokenstream.pop_front() {
@@ -94,28 +101,30 @@ fn var(tokenstream: &mut TokenStream) -> AstNode {
 
 fn tag(tokenstream: &mut TokenStream) -> AstNode {
 	let Some(Token::Ident(name)) = tokenstream.pop_front() else {
-		return AstNode::text(":")
+		return AstNode::text(":");
 	};
 	let Some(Token::OpenBracket) = tokenstream.pop_front() else {
-		return AstNode::Text(":".to_string() + &name)
+		return AstNode::Text(":".to_string() + &name);
 	};
 
 	// TODO: Attributes
 
-	AstNode::Tag(Tag { 
-		name, 
-		attributes: None, 
-		contents: Ast::parse_until(tokenstream, Some(Token::CloseBracket))
+	AstNode::Tag(Tag {
+		name,
+		attributes: None,
+		contents: Ast::parse_until(tokenstream, Some(Token::CloseBracket)),
 	})
 }
 
 mod tests {
 	#[allow(unused)]
-	use crate::parser::*;
+	use super::*;
+	#[allow(unused)]
+	use crate::vecde;
 
 	#[test]
 	fn variables() {
-		let tokenstream: TokenStream = vec![
+		let tokenstream = vecde![
 			Token::Andpersand,
 			Token::Ident("x".into()),
 			Token::Walrus,
@@ -123,7 +132,7 @@ mod tests {
 			Token::SemiColon,
 			Token::Andpersand,
 			Token::Ident("x".into()),
-		].into();
+		];
 
 		let ast = Ast::parse(tokenstream);
 
@@ -137,6 +146,38 @@ mod tests {
 				AstNode::AccessVar("x".into()),
 			]
 			.into())
+		);
+	}
+
+	#[test]
+	fn tags() {
+		let tokenstream = vecde![
+			Token::Colon,
+			Token::Ident("a".into()),
+			Token::OpenBracket,
+			Token::CloseBracket,
+			Token::Colon,
+			Token::Ident("b".into()),
+			Token::OpenBracket,
+			Token::CloseBracket,
+		];
+
+		let ast = Ast::parse(tokenstream);
+
+		assert_eq!(
+			ast,
+			Ast(vecde![
+				AstNode::Tag(Tag {
+					name: "a".into(),
+					attributes: None,
+					contents: Ast::empty()
+				}),
+				AstNode::Tag(Tag {
+					name: "b".into(),
+					attributes: None,
+					contents: Ast::empty()
+				}),
+			])
 		);
 	}
 }

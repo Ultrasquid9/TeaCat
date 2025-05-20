@@ -4,6 +4,7 @@ use parser::Ast;
 
 pub mod lexer;
 pub mod parser;
+pub mod utils;
 
 const INPUT: &str = r#"
 # Comments use hashtags
@@ -30,7 +31,7 @@ const INPUT: &str = r#"
 		# A backslash escapes the following character
 		\&title # will print "title" in the generated HTML 
 
-		:br[]
+		#:br[]
 
 		# Use curly braces for tag attributes
 		#:img{
@@ -47,14 +48,9 @@ fn main() -> CatResult<()> {
 	let tokenstream = lexer::lex(INPUT.into());
 	let ast = Ast::parse(tokenstream);
 
-	println!("{ast:?}");
-
-	/* 	let tokens = lex(INPUT.into());
-	let tokens = variables(tokens);
-	let html = eval(tokens);
-
-	println!("{}", html);
-	std::fs::write("./index.html", html)?; */
+	for node in ast.0 {
+		println!("{node:?}\n")
+	}
 
 	Ok(())
 }
