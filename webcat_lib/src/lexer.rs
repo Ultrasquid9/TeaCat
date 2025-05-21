@@ -235,7 +235,7 @@ fn clean_tokens(tokens: &mut Vec<Token>) {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::vecde;
+	use crate::vecdeque;
 
 	#[test]
 	fn variables() {
@@ -249,7 +249,7 @@ mod tests {
 
 		assert_eq!(
 			tokenstream,
-			vecde![
+			vecdeque![
 				Token::Andpersand,
 				Token::Ident("x".into()),
 				Token::Walrus,
@@ -281,7 +281,7 @@ mod tests {
 
 		assert_eq!(
 			tokenstream,
-			vecde![
+			vecdeque![
 				Token::Andpersand,
 				Token::Ident("x".into()),
 				Token::Text("&x".into()),
@@ -302,7 +302,7 @@ mod tests {
 
 		assert_eq!(
 			tokenstream,
-			vecde![
+			vecdeque![
 				Token::Colon,
 				Token::Ident("a".into()),
 				Token::OpenBracket,
@@ -322,7 +322,7 @@ mod tests {
 
 		assert_eq!(
 			tokenstream,
-			vecde![
+			vecdeque![
 				Token::Colon,
 				Token::Ident("tag".into()),
 				Token::OpenBrace,
@@ -345,7 +345,7 @@ mod tests {
 	fn strlit() {
 		assert_eq!(
 			TokenStream::lex("'input'".into()),
-			vecde![Token::Stringliteral(StringLiteral {
+			vecdeque![Token::Stringliteral(StringLiteral {
 				quotes: '\'',
 				content: "input".into()
 			})]
@@ -367,7 +367,7 @@ mod tests {
 
 		assert_eq!(
 			tokenstream,
-			vecde![
+			vecdeque![
 				// Line 1
 				Token::Andpersand,
 				Token::Ident("title".into()),

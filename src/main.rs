@@ -2,14 +2,9 @@
 
 use std::{collections::HashMap, error::Error};
 
-use html::Html;
-use lexer::TokenStream;
-use parser::Ast;
-
-pub mod html;
-pub mod lexer;
-pub mod parser;
-pub mod utils;
+use webcat_lib::html::Html;
+use webcat_lib::lexer::TokenStream;
+use webcat_lib::parser::Ast;
 
 pub const INPUT: &str = r#"
 # Comments use hashtags

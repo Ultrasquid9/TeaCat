@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::{
 	lexer::{StringLiteral, Token, TokenStream},
-	vecde,
+	vecdeque,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -29,12 +29,12 @@ pub struct Var {
 	pub contents: Ast,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct Attributes(pub HashMap<String, StringLiteral>);
 
 impl Ast {
 	pub fn empty() -> Self {
-		vecde![].into()
+		vecdeque![].into()
 	}
 
 	pub fn parse(mut tokenstream: TokenStream) -> Self {
@@ -205,11 +205,11 @@ fn tag(tokenstream: &mut TokenStream) -> AstNode {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{lexer::TokenStream, vecde};
+	use crate::{lexer::TokenStream, vecdeque};
 
 	#[test]
 	fn variables() {
-		let tokenstream = vecde![
+		let tokenstream = vecdeque![
 			Token::Andpersand,
 			Token::Ident("x".into()),
 			Token::Walrus,
@@ -223,10 +223,10 @@ mod tests {
 
 		assert_eq!(
 			ast,
-			vecde![
+			vecdeque![
 				AstNode::Var(Var {
 					name: "x".into(),
-					contents: vecde![AstNode::Text(" X".into())].into()
+					contents: vecdeque![AstNode::Text(" X".into())].into()
 				}),
 				AstNode::AccessVar("x".into()),
 			]
@@ -236,7 +236,7 @@ mod tests {
 
 	#[test]
 	fn tags() {
-		let tokenstream = vecde![
+		let tokenstream = vecdeque![
 			Token::Colon,
 			Token::Ident("a".into()),
 			Token::OpenBracket,
@@ -251,7 +251,7 @@ mod tests {
 
 		assert_eq!(
 			ast,
-			vecde![
+			vecdeque![
 				AstNode::Tag(Tag {
 					name: "a".into(),
 					attributes: Attributes::new(),
@@ -269,7 +269,7 @@ mod tests {
 
 	#[test]
 	fn nested_tags() {
-		let tokenstream = vecde![
+		let tokenstream = vecdeque![
 			Token::Colon,
 			Token::Ident("a".into()),
 			Token::OpenBracket,
@@ -288,11 +288,11 @@ mod tests {
 
 		assert_eq!(
 			ast,
-			vecde![
+			vecdeque![
 				AstNode::Tag(Tag {
 					name: "a".into(),
 					attributes: Attributes::new(),
-					contents: vecde![AstNode::Tag(Tag {
+					contents: vecdeque![AstNode::Tag(Tag {
 						name: "b".into(),
 						attributes: Attributes::new(),
 						contents: Ast::empty()
@@ -315,7 +315,7 @@ mod tests {
 
 		assert_eq!(
 			ast,
-			vecde![AstNode::Tag(Tag {
+			vecdeque![AstNode::Tag(Tag {
 				name: "tag".into(),
 				attributes: HashMap::from([
 					("x".to_string(), "1".into()),
@@ -342,28 +342,28 @@ mod tests {
 
 		assert_eq!(
 			ast,
-			vecde![
+			vecdeque![
 				AstNode::Var(Var {
 					name: "title".into(),
-					contents: vecde![AstNode::Tag(Tag {
+					contents: vecdeque![AstNode::Tag(Tag {
 						name: "title".into(),
 						attributes: Attributes::new(),
-						contents: vecde![AstNode::text("My Webpage")].into()
+						contents: vecdeque![AstNode::text("My Webpage")].into()
 					})]
 					.into()
 				}),
 				AstNode::Tag(Tag {
 					name: "head".into(),
 					attributes: Attributes::new(),
-					contents: vecde![AstNode::AccessVar("title".into())].into()
+					contents: vecdeque![AstNode::AccessVar("title".into())].into()
 				}),
 				AstNode::Tag(Tag {
 					name: "body".into(),
 					attributes: Attributes::new(),
-					contents: vecde![AstNode::Tag(Tag {
+					contents: vecdeque![AstNode::Tag(Tag {
 						name: "p".into(),
 						attributes: Attributes::new(),
-						contents: vecde![AstNode::text("&title")].into()
+						contents: vecdeque![AstNode::text("&title")].into()
 					})]
 					.into()
 				})

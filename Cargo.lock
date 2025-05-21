@@ -21,5 +21,12 @@ dependencies = [
 name = "webcat"
 version = "0.1.0"
 dependencies = [
+ "webcat_lib",
+]
+
+[[package]]
+name = "webcat_lib"
+version = "0.1.0"
+dependencies = [
  "nom",
 ]
