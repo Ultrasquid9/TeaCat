@@ -22,10 +22,11 @@ let webcat_str = "
 
 let tokenstream = TokenStream::lex(webcat_str);
 let ast = Ast::parse(tokenstream);
-let html = Html::expand(ast, &HashMap::new());
+let expanded = ExpandedAst::expand(ast, &HashMap::new());
+let html = HtmlRenderer::render(expanded);
 
 assert_eq!(
-	html.render(),
-	"<head><title>My Webpage</title></head><body><p>Hello, World!</p></body>".to_string()
+	html,
+	"<!DOCTYPE html><html><head><title>My Webpage</title></head><body><p>Hello, World!</p></body></html>".to_string()
 );
 ```

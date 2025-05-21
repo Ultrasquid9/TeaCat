@@ -2,9 +2,7 @@
 
 use std::{collections::HashMap, error::Error};
 
-use webcat_lib::html::Html;
-use webcat_lib::lexer::TokenStream;
-use webcat_lib::parser::Ast;
+use webcat_lib::prelude::*;
 
 pub const INPUT: &str = r#"
 # Comments use hashtags
@@ -47,9 +45,10 @@ pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 fn main() -> CatResult<()> {
 	let tokenstream = TokenStream::lex(INPUT.into());
 	let ast = Ast::parse(tokenstream);
-	let html = Html::expand(ast, &HashMap::new());
+	let expanded = ExpandedAst::expand(ast, &HashMap::new());
+	let html = HtmlRenderer::render(expanded);
 
-	println!("{}", html.render());
+	println!("{}", html);
 
 	Ok(())
 }

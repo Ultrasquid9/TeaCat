@@ -22,23 +22,27 @@
 //!
 //! let tokenstream = TokenStream::lex(webcat_str);
 //! let ast = Ast::parse(tokenstream);
-//! let html = Html::expand(ast, &HashMap::new());
+//! let expanded = ExpandedAst::expand(ast, &HashMap::new());
+//! let html = HtmlRenderer::render(expanded);
 //!
 //! assert_eq!(
-//! 	html.render(),
-//! 	"<head><title>My Webpage</title></head><body><p>Hello, World!</p></body>".to_string()
+//! 	html,
+//! 	"<!DOCTYPE html><html><head><title>My Webpage</title></head><body><p>Hello, World!</p></body></html>".to_string()
 //! );
 //! ```
 
 #![allow(clippy::tabs_in_doc_comments)]
 
-pub mod html;
+pub mod expanded;
 pub mod lexer;
 pub mod parser;
 pub mod utils;
 
 pub mod prelude {
-	pub use crate::html::Html;
+	pub use crate::expanded::{
+		ExpandedAst, ExpandedNode, ExpandedTag,
+		renderer::{Renderer, html::HtmlRenderer},
+	};
 	pub use crate::lexer::TokenStream;
-	pub use crate::parser::Ast;
+	pub use crate::parser::{Ast, Attributes};
 }

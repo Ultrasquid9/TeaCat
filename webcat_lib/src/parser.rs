@@ -103,16 +103,6 @@ impl Attributes {
 		Self(HashMap::new())
 	}
 
-	pub fn render(self) -> String {
-		let mut rendered = String::new();
-
-		for (key, val) in self.0 {
-			rendered.push_str(&format!(" {key}={}", val.into_string()));
-		}
-
-		rendered
-	}
-
 	fn parse(tokenstream: &mut TokenStream) -> Self {
 		let mut attributes = HashMap::new();
 
