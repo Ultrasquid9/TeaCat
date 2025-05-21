@@ -3,17 +3,18 @@ use crate::prelude::*;
 /// Renders an [ExpandedAst] into an HTML string. 
 pub struct HtmlRenderer;
 
-impl Renderer for HtmlRenderer {
+impl Renderer<String> for HtmlRenderer {
 	fn render(ast: ExpandedAst) -> String {
-		format!("<!DOCTYPE html><html>{}</html>", Self::render_ast(ast))
+		let mut renderer = Self;
+		format!("<!DOCTYPE html><html>{}</html>", renderer.render_ast(ast))
 	}
 
-	fn render_ast(ast: ExpandedAst) -> String {
+	fn render_ast(&mut self, ast: ExpandedAst) -> String {
 		let mut rendered = String::new();
 
 		for node in ast.0 {
 			rendered.push_str(&match node {
-				ExpandedNode::Tag(tag) => Self::render_tag(tag),
+				ExpandedNode::Tag(tag) => self.render_tag(tag),
 				ExpandedNode::Text(text) => text,
 			});
 		}
@@ -21,17 +22,21 @@ impl Renderer for HtmlRenderer {
 		rendered
 	}
 
-	fn render_tag(tag: ExpandedTag) -> String {
+	fn render_tag(&mut self, tag: ExpandedTag) -> String {
 		format!(
 			"<{}{}>{}</{}>",
 			tag.name,
-			Self::render_attributes(tag.attributes),
-			Self::render_ast(tag.contents),
+			self.render_attributes(tag.attributes),
+			self.render_ast(tag.contents),
 			tag.name
 		)
 	}
 
-	fn render_attributes(attributes: Attributes) -> String {
+	fn render_text(&mut self, text: String) -> String {
+		text
+	}
+
+	fn render_attributes(&mut self, attributes: Attributes) -> String {
 		let mut rendered = String::new();
 
 		for (key, val) in attributes.0 {

@@ -39,7 +39,7 @@ pub const INPUT: &str = r#"
 "#;
 
 fn main() -> CatResult<()> {
-	let html = eval_webcat_string::<HtmlRenderer>(INPUT.into())?;
+	let html = eval_webcat_string::<HtmlRenderer, _>(INPUT.into())?;
 	println!("{html}");
 
 	Ok(())

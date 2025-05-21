@@ -53,11 +53,11 @@ pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 /// let webcat_string = ":head[]".to_string();
 ///
 /// assert_eq!(
-/// 	eval_webcat_string::<HtmlRenderer>(webcat_string).unwrap(),
+/// 	eval_webcat_string::<HtmlRenderer, String>(webcat_string).unwrap(),
 /// 	"<!DOCTYPE html><html><head></head></html>".to_string(),
 /// );
 /// ```
-pub fn eval_webcat_string<Rend: Renderer>(webcat_string: String) -> CatResult<String> {
+pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(webcat_string: String) -> CatResult<Out> {
 	let tokenstream = TokenStream::lex(webcat_string);
 	let ast = Ast::parse(tokenstream);
 	let expanded = ExpandedAst::expand(ast, &HashMap::new());
