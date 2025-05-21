@@ -221,13 +221,17 @@ fn str_starts_with(input: &str, pat: &str) -> bool {
 fn clean_tokens(tokens: &mut Vec<Token>) {
 	for token in &mut *tokens {
 		if let Some(str) = token.string_mut() {
-			*str = str.trim().into();
+			*str = str
+				.trim_matches(|ch: char| ch.is_whitespace() && ch != ' ')
+				.into();
 		}
 	}
 
 	*tokens = tokens
 		.iter()
-		.filter(|token| !matches!((*token).clone().string_mut(), Some(str) if str.is_empty()))
+		.filter(
+			|token| !matches!((*token).clone().string_mut(), Some(str) if str.trim().is_empty()),
+		)
 		.cloned()
 		.collect();
 }
@@ -253,7 +257,7 @@ mod tests {
 				Token::Andpersand,
 				Token::Ident("x".into()),
 				Token::Walrus,
-				Token::Text("X".into()),
+				Token::Text(" X".into()),
 				Token::SemiColon,
 				Token::Andpersand,
 				Token::Ident("x".into()),
@@ -318,7 +322,7 @@ mod tests {
 
 	#[test]
 	fn attributes() {
-		let tokenstream = TokenStream::lex(":tag{x:1, y:2}[]".into());
+		let tokenstream = TokenStream::lex(":tag{x:`1`, y:'2'}[]".into());
 
 		assert_eq!(
 			tokenstream,
@@ -328,11 +332,17 @@ mod tests {
 				Token::OpenBrace,
 				Token::Text("x".into()),
 				Token::Colon,
-				Token::Ident("1".into()),
+				Token::Stringliteral(StringLiteral {
+					quotes: '`',
+					content: "1".into()
+				}),
 				Token::Comma,
-				Token::Text("y".into()),
+				Token::Text(" y".into()),
 				Token::Colon,
-				Token::Ident("2".into()),
+				Token::Stringliteral(StringLiteral {
+					quotes: '\'',
+					content: "2".into()
+				}),
 				Token::CloseBrace,
 				Token::OpenBracket,
 				Token::CloseBracket,

@@ -1,7 +1,7 @@
 /// A macro to create a [VecDeque](std::collections::VecDeque).
 /// # Examples
 /// ```
-/// use webcat_lib::vecde;
+/// use webcat_lib::vecdeque;
 ///
 /// assert_eq!(
 /// 	vecdeque![1, 2, 3,],

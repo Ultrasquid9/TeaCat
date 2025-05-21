@@ -128,7 +128,7 @@ impl Attributes {
 				Token::CloseBrace => break,
 				Token::Comma => {
 					let key = match tokenstream.0.pop_front() {
-						Some(Token::Text(key)) => key,
+						Some(Token::Text(key)) => key.trim().to_string(),
 						Some(Token::CloseBrace) => break,
 						other => {
 							println!("Unexpected input in attributes: {other:?}");
@@ -160,8 +160,8 @@ impl Attributes {
 }
 
 impl From<HashMap<String, StringLiteral>> for Attributes {
-	fn from(value: HashMap<String, StringLiteral>) -> Self {
-		Self(value)
+	fn from(hashmap: HashMap<String, StringLiteral>) -> Self {
+		Self(hashmap)
 	}
 }
 
