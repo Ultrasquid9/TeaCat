@@ -7,9 +7,11 @@ use nom::bytes::complete::tag;
 
 const QUOTES: &[char] = &['\'', '"', '`'];
 
+/// A list of [Tokens](Token) built from a WebCat string. 
 #[derive(PartialEq, Eq, Debug)]
 pub struct TokenStream(pub VecDeque<Token>);
 
+/// The basic building blocks of a WebCat file. 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Token {
 	Ident(String),

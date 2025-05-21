@@ -5,9 +5,11 @@ use crate::{
 	vecdeque,
 };
 
+/// A [TokenStream] that has been evaluated into a useable structure. 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Ast(pub VecDeque<AstNode>);
 
+/// A single node within an [Ast].
 #[derive(Debug, PartialEq, Eq)]
 pub enum AstNode {
 	Text(String),

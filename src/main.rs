@@ -1,7 +1,5 @@
 #![allow(clippy::tabs_in_doc_comments)]
 
-use std::{collections::HashMap, error::Error};
-
 use webcat_lib::prelude::*;
 
 pub const INPUT: &str = r#"
@@ -40,15 +38,9 @@ pub const INPUT: &str = r#"
 ]
 "#;
 
-pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
-
 fn main() -> CatResult<()> {
-	let tokenstream = TokenStream::lex(INPUT.into());
-	let ast = Ast::parse(tokenstream);
-	let expanded = ExpandedAst::expand(ast, &HashMap::new());
-	let html = HtmlRenderer::render(expanded);
-
-	println!("{}", html);
+	let html = eval_webcat_string::<HtmlRenderer>(INPUT.into())?;
+	println!("{html}");
 
 	Ok(())
 }

@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+/// Renders an [ExpandedAst] into an HTML string. 
 pub struct HtmlRenderer;
 
 impl Renderer for HtmlRenderer {
