@@ -13,3 +13,8 @@ test:
 
 run file=testfile:
 	cargo run -- {{file}}
+
+update:
+	git fetch
+	git pull
+	cargo update

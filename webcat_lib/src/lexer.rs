@@ -1,7 +1,15 @@
 use std::collections::VecDeque;
 use std::mem::replace;
+use std::sync::LazyLock;
+
+use regex::Regex;
+
+use crate::vecdeque;
 
 const QUOTES: &[char] = &['\'', '"', '`'];
+
+static WHITESPACE: LazyLock<Regex> =
+	LazyLock::new(|| regex::Regex::new("\\s+").expect("Regex should compile"));
 
 /// A list of [Tokens](Token) built from a WebCat string.
 #[derive(PartialEq, Eq, Debug)]
@@ -33,8 +41,9 @@ pub struct StringLiteral {
 }
 
 impl TokenStream {
+	/// Lexes a [String] into a list of [Tokens](Token).
 	pub fn lex(mut input: String) -> Self {
-		let mut tokenstream = vec![];
+		let mut tokenstream = Self::default();
 		let mut current = Token::empty();
 
 		let mut escaped = false;
@@ -43,7 +52,7 @@ impl TokenStream {
 			// Handling the backslash escape
 			// TODO: \n, \t, etc
 			if escaped {
-				push_current_ch(&mut input, &mut current, &mut tokenstream);
+				tokenstream.push_current_ch(&mut input, &mut current);
 				escaped = false;
 				continue;
 			}
@@ -65,7 +74,7 @@ impl TokenStream {
 
 			// Handling string literals
 			if matches!(current, Token::Stringliteral(_)) {
-				push_current_ch(&mut input, &mut current, &mut tokenstream);
+				tokenstream.push_current_ch(&mut input, &mut current);
 				continue;
 			}
 
@@ -77,21 +86,91 @@ impl TokenStream {
 			}
 
 			// No operators/keywords found, so the current char is inserted into the current token
-			push_current_ch(&mut input, &mut current, &mut tokenstream);
+			tokenstream.push_current_ch(&mut input, &mut current);
 		}
 
 		// Adding the current token
 		tokenstream.push(current);
 		// Removing empty tokens
-		clean_tokens(&mut tokenstream);
+		tokenstream.clean_tokens();
 
-		tokenstream.into()
+		tokenstream
+	}
+
+	/// Removes the first [char] of the given [String] and inserts it into the
+	/// current [Token] if possible, or creates a new token if not.
+	fn push_current_ch(&mut self, input: &mut String, current: &mut Token) {
+		let ch = input.remove(0);
+
+		macro_rules! token_switcheroo {
+			($t:expr) => {
+				let token = replace(current, $t);
+				self.push(token);
+			};
+		}
+
+		// Handling String Literals
+		if QUOTES.contains(&ch) && !matches!(current, Token::Stringliteral(_)) {
+			token_switcheroo!(Token::Stringliteral(StringLiteral::new(ch)));
+			return;
+		}
+		if matches!(current, Token::Stringliteral(str) if str.quotes == ch) {
+			token_switcheroo!(Token::empty());
+			return;
+		}
+
+		// If the current Token does not store text, set it to one that does.
+		// - If the current Token implies an Ident, create one.
+		// - Otherwise, create a Text.
+		if current.string_mut().is_none() {
+			let token = if current.creates_ident() {
+				Token::Ident("".into())
+			} else {
+				Token::empty()
+			};
+			token_switcheroo!(token);
+		}
+		// An Ident cannot contain whitespace.
+		if matches!(current, Token::Ident(_)) && ch.is_whitespace() {
+			token_switcheroo!(Token::empty());
+		}
+
+		current.push_char(ch);
+	}
+
+	/// Converts any sequences of whitespace within [Tokens](Token) into singular spaces, and
+	/// removes any tokens consisting only of whitespace.
+	fn clean_tokens(&mut self) {
+		for token in &mut self.0 {
+			if let Some(str) = token.string_mut() {
+				*str = WHITESPACE
+					.replace_all(
+						str.trim_matches(|ch: char| ch.is_whitespace() && ch != ' '),
+						" ",
+					)
+					.into();
+			}
+		}
+
+		self.0 = self
+			.0
+			.iter()
+			.filter(
+				|token| !matches!((*token).clone().string_mut(), Some(str) if str.trim().is_empty()),
+			)
+			.cloned()
+			.collect();
+	}
+
+	/// Inserts a [Token] into the back of a [TokenStream].
+	pub fn push(&mut self, val: Token) {
+		self.0.push_back(val);
 	}
 }
 
-impl From<Vec<Token>> for TokenStream {
-	fn from(value: Vec<Token>) -> Self {
-		Self(value.into())
+impl Default for TokenStream {
+	fn default() -> Self {
+		vecdeque![].into()
 	}
 }
 
@@ -148,45 +227,6 @@ impl From<&str> for StringLiteral {
 	}
 }
 
-fn push_current_ch(input: &mut String, current: &mut Token, tokenstream: &mut Vec<Token>) {
-	let ch = input.remove(0);
-
-	macro_rules! token_switcheroo {
-		($t:expr) => {
-			let token = replace(current, $t);
-			tokenstream.push(token);
-		};
-	}
-
-	// Handling String Literals
-	if QUOTES.contains(&ch) && !matches!(current, Token::Stringliteral(_)) {
-		token_switcheroo!(Token::Stringliteral(StringLiteral::new(ch)));
-		return;
-	}
-	if matches!(current, Token::Stringliteral(str) if str.quotes == ch) {
-		token_switcheroo!(Token::empty());
-		return;
-	}
-
-	// If the current Token does not store text, set it to one that does.
-	// - If the current Token implies an Ident, create one.
-	// - Otherwise, create a Text.
-	if current.string_mut().is_none() {
-		let token = if current.creates_ident() {
-			Token::Ident("".into())
-		} else {
-			Token::empty()
-		};
-		token_switcheroo!(token);
-	}
-	// An Ident cannot contain whitespace.
-	if matches!(current, Token::Ident(_)) && ch.is_whitespace() {
-		token_switcheroo!(Token::empty());
-	}
-
-	current.push_char(ch);
-}
-
 fn rules(input: &mut String) -> Option<Token> {
 	let rules = [
 		("[", Token::OpenBracket),
@@ -208,30 +248,6 @@ fn rules(input: &mut String) -> Option<Token> {
 	}
 
 	None
-}
-
-/// Removing leading and trailing whitespace from tokens
-fn clean_tokens(tokens: &mut Vec<Token>) {
-	let whitespace = regex::Regex::new("\\s+").expect("Regex should compile");
-
-	for token in &mut *tokens {
-		if let Some(str) = token.string_mut() {
-			*str = whitespace
-				.replace_all(
-					str.trim_matches(|ch: char| ch.is_whitespace() && ch != ' '),
-					" ",
-				)
-				.into();
-		}
-	}
-
-	*tokens = tokens
-		.iter()
-		.filter(
-			|token| !matches!((*token).clone().string_mut(), Some(str) if str.trim().is_empty()),
-		)
-		.cloned()
-		.collect();
 }
 
 #[cfg(test)]
