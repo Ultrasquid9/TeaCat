@@ -1,17 +1,13 @@
 use std::collections::VecDeque;
 use std::mem::replace;
 
-use nom::error::Error as NomError;
-
-use nom::bytes::complete::tag;
-
 const QUOTES: &[char] = &['\'', '"', '`'];
 
-/// A list of [Tokens](Token) built from a WebCat string. 
+/// A list of [Tokens](Token) built from a WebCat string.
 #[derive(PartialEq, Eq, Debug)]
 pub struct TokenStream(pub VecDeque<Token>);
 
-/// The basic building blocks of a WebCat file. 
+/// The basic building blocks of a WebCat file.
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Token {
 	Ident(String),
@@ -51,14 +47,14 @@ impl TokenStream {
 				escaped = false;
 				continue;
 			}
-			if str_starts_with(&input, "\\") {
+			if input.starts_with("\\") {
 				input.remove(0);
 				escaped = true;
 				continue;
 			}
 
 			// Handling comments
-			if str_starts_with(&input, "#") {
+			if input.starts_with("#") {
 				if let Some((_, str)) = input.split_once("\n") {
 					input = str.into();
 				} else {
@@ -205,7 +201,7 @@ fn rules(input: &mut String) -> Option<Token> {
 	];
 
 	for (key, token) in rules {
-		if tag::<&str, &str, NomError<_>>(key)(input).is_ok() {
+		if input.starts_with(key) {
 			*input = input.replacen(key, "", 1);
 			return Some(token);
 		}
@@ -214,17 +210,17 @@ fn rules(input: &mut String) -> Option<Token> {
 	None
 }
 
-/// Checks if the input starts with the provided pattern
-fn str_starts_with(input: &str, pat: &str) -> bool {
-	tag::<&str, &str, NomError<_>>(pat)(input).is_ok()
-}
-
 /// Removing leading and trailing whitespace from tokens
 fn clean_tokens(tokens: &mut Vec<Token>) {
+	let whitespace = regex::Regex::new("\\s+").expect("Regex should compile");
+
 	for token in &mut *tokens {
 		if let Some(str) = token.string_mut() {
-			*str = str
-				.trim_matches(|ch: char| ch.is_whitespace() && ch != ' ')
+			*str = whitespace
+				.replace_all(
+					str.trim_matches(|ch: char| ch.is_whitespace() && ch != ' '),
+					" ",
+				)
 				.into();
 		}
 	}
@@ -363,6 +359,14 @@ mod tests {
 			})]
 			.into()
 		)
+	}
+
+	#[test]
+	fn whitespace() {
+		assert_eq!(
+			TokenStream::lex("a\ta".into()),
+			vecdeque![Token::Text("a a".into())].into()
+		);
 	}
 
 	#[test]

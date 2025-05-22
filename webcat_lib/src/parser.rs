@@ -5,7 +5,7 @@ use crate::{
 	vecdeque,
 };
 
-/// A [TokenStream] that has been evaluated into a useable structure. 
+/// A [TokenStream] that has been evaluated into a useable structure.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Ast(pub VecDeque<AstNode>);
 

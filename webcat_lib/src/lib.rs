@@ -42,7 +42,7 @@ pub mod lexer;
 pub mod parser;
 
 /// A wrapper around [Result] containing a dynamic [Error] type.
-// Meow 
+// Meow
 pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 /// Evaluates a WebCat string.

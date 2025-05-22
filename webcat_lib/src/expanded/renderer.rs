@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub mod html;
 
-/// Renders an [ExpandedAst] into another (typically human-readable) form. 
+/// Renders an [ExpandedAst] into another (typically human-readable) form.
 pub trait Renderer<Out> {
 	fn render(ast: ExpandedAst) -> Out;
 	fn render_ast(&mut self, ast: ExpandedAst) -> Out;

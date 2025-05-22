@@ -4,7 +4,7 @@ use crate::parser::{Ast, AstNode, Attributes, Tag};
 
 pub mod renderer;
 
-/// An [Ast] that has had all variables expanded out and removed, and is ready for rendering. 
+/// An [Ast] that has had all variables expanded out and removed, and is ready for rendering.
 #[derive(Debug, Clone)]
 pub struct ExpandedAst(Vec<ExpandedNode>);
 
