@@ -8,3 +8,4 @@ edition = "2024"
 
 [dependencies]
 webcat_lib = { path = "webcat_lib" }
+anyhow = "1"

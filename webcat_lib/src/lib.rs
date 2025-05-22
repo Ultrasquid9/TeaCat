@@ -33,17 +33,13 @@
 
 #![allow(clippy::tabs_in_doc_comments)]
 
-use std::{collections::HashMap, error::Error};
+use std::collections::HashMap;
 
 use prelude::*;
 
 pub mod expanded;
 pub mod lexer;
 pub mod parser;
-
-/// A wrapper around [Result] containing a dynamic [Error] type.
-// Meow
-pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
 /// Evaluates a WebCat string.
 /// # Examples
@@ -57,7 +53,7 @@ pub type CatResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 /// 	"<!DOCTYPE html><html><head></head></html>".to_string(),
 /// );
 /// ```
-pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(webcat_string: String) -> CatResult<Out> {
+pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(webcat_string: String) -> anyhow::Result<Out> {
 	let tokenstream = TokenStream::lex(webcat_string);
 	let ast = Ast::parse(tokenstream);
 	let expanded = ExpandedAst::expand(ast, &HashMap::new());
@@ -88,5 +84,5 @@ pub mod prelude {
 	};
 	pub use crate::lexer::TokenStream;
 	pub use crate::parser::{Ast, Attributes};
-	pub use crate::{CatResult, eval_webcat_string};
+	pub use crate::eval_webcat_string;
 }

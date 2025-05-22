@@ -12,6 +12,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.98"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
+
+[[package]]
 name = "html-escape"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -65,6 +71,7 @@ checksum = "86bd8d4e895da8537e5315b8254664e6b769c4ff3db18321b297a1e7004392e3"
 name = "webcat"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "webcat_lib",
 ]
 
@@ -72,6 +79,7 @@ dependencies = [
 name = "webcat_lib"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "html-escape",
  "regex",
 ]
