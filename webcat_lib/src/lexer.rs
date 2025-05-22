@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::fmt::{Display, Formatter, Result};
 use std::mem::replace;
 use std::sync::LazyLock;
 
@@ -59,7 +60,7 @@ impl TokenStream {
 				};
 			};
 		}
-		//next_line!();
+		next_line!();
 
 		while !input.is_empty() {
 			if input.starts_with("\n") {
@@ -82,7 +83,7 @@ impl TokenStream {
 			// Handling comments
 			if input.starts_with("#") {
 				if let Some((_, str)) = input.split_once("\n") {
-					input = "\n".to_string() + str.into();
+					input = "\n".to_string() + str;
 				} else {
 					input.clear();
 				}
@@ -224,6 +225,28 @@ impl Token {
 
 	fn creates_ident(&self) -> bool {
 		matches!(self, Self::Colon | Self::Andpersand)
+	}
+}
+
+impl Display for Token {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+		let out: String;
+
+		f.write_str(match self {
+			Self::Stringliteral(strlit) => {
+				out = strlit.into_string();
+				&out
+			}
+			Self::Text(str) | Self::Ident(str) => str,
+			Self::Andpersand => "&",
+			Self::CloseBrace => "}",
+			Self::CloseBracket => "]",
+			Self::Colon => ":",
+			Self::OpenBrace => "{",
+			Self::OpenBracket => "[",
+			Self::SemiColon => ";",
+			Self::Walrus => ":=",
+		})
 	}
 }
 

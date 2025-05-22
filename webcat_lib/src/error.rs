@@ -5,6 +5,8 @@ use std::{
 
 use anstyle::{AnsiColor, Color, Style};
 
+use crate::lexer::Token;
+
 const ERR: Style = colorstyle(AnsiColor::Red);
 const HELP: Style = colorstyle(AnsiColor::Magenta);
 const DARK: Style = colorstyle(AnsiColor::BrightBlack);
@@ -19,6 +21,7 @@ pub struct Line {
 #[derive(Debug, Clone)]
 pub enum WebCatError {
 	UndefinedVarError(String, Line),
+	UnexpectedAttribute(Token, Line),
 }
 
 impl Display for Line {
@@ -46,6 +49,11 @@ impl Display for WebCatError {
 			Self::UndefinedVarError(var, line) => write_err(
 				format!("variable '&{var}' undefined"),
 				format!("to insert an '&' directly, use a backslash: '\\&{var}'"),
+				line.clone(),
+			),
+			Self::UnexpectedAttribute(token, line) => write_err(
+				format!("unexpected token in attributes: '{token}'"),
+				format!("try surrounding the token with quotation marks: '\"{token}\"'"),
 				line.clone(),
 			),
 		})

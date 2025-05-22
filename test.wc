@@ -26,6 +26,8 @@
 
 		:br[]
 
+		&link := "https://www.w3schools.com/images/w3schools_green.jpg";
+
 		# Use curly braces for tag attributes
 		:img{
 			src:"https://www.w3schools.com/images/w3schools_green.jpg"

@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-	error::Line,
+	error::{Line, WebCatError},
 	lexer::{StringLiteral, Token, TokenStream},
 	vecdeque,
 };
@@ -60,18 +60,10 @@ impl Ast {
 				Token::Andpersand => var(tokenstream)?,
 				Token::Colon => tag(tokenstream)?,
 
-				Token::Text(text) => AstNode::Text(text),
-
-				// These tokens are only useful if explicitly required by another,
-				// so they can be safely converted into text.
-				Token::Ident(ident) => AstNode::Text(ident),
-				Token::Stringliteral(strlit) => AstNode::Text(strlit.into_string()),
-				Token::OpenBracket => AstNode::text("["),
-				Token::CloseBracket => AstNode::text("]"),
-				Token::OpenBrace => AstNode::text("{"),
-				Token::CloseBrace => AstNode::text("}"),
-				Token::SemiColon => AstNode::text(";"),
-				Token::Walrus => AstNode::text(":="),
+				// The remaining tokens are either text themselves or only useful if
+				// explicitly required by another, so they can be safely converted
+				// into text.
+				other => AstNode::Text(format!("{other}")),
 			});
 		}
 
@@ -121,10 +113,11 @@ impl Attributes {
 					};
 					let val = match tokenstream.0.pop_front() {
 						Some((_, Token::Stringliteral(val))) => val,
-						other => {
-							println!("Unexpected input in attributes: {other:?}");
-							todo!("Error Handling");
+
+						Some((line, token)) => {
+							return Err(WebCatError::UnexpectedAttribute(token, line).into());
 						}
+						_ => todo!(),
 					};
 
 					attributes.insert(key, val);
