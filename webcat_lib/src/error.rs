@@ -5,7 +5,12 @@ use std::{
 
 use anstyle::{AnsiColor, Color, Style};
 
-#[derive(Debug, Clone)]
+const ERR: Style = colorstyle(AnsiColor::Red);
+const HELP: Style = colorstyle(AnsiColor::Magenta);
+const DARK: Style = colorstyle(AnsiColor::BrightBlack);
+const DEFAULT: Style = colorstyle(AnsiColor::White);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Line {
 	pub number: usize,
 	pub text: String,
@@ -14,6 +19,21 @@ pub struct Line {
 #[derive(Debug, Clone)]
 pub enum WebCatError {
 	UndefinedVarError(String, Line),
+}
+
+impl Display for Line {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+		f.write_str(&format!("{DARK}{} | {DEFAULT}{}", self.number, self.text))
+	}
+}
+
+impl Default for Line {
+	fn default() -> Self {
+		Self {
+			number: 0,
+			text: "".into(),
+		}
+	}
 }
 
 impl Display for WebCatError {
@@ -31,17 +51,8 @@ impl Display for WebCatError {
 impl Error for WebCatError {}
 
 fn write_err(err_message: String, help_message: String, line: Line) -> String {
-	const ERR: Style = colorstyle(AnsiColor::Red);
-	const HELP: Style = colorstyle(AnsiColor::Magenta);
-	const DARK: Style = colorstyle(AnsiColor::BrightBlack);
-	const DEFAULT: Style = colorstyle(AnsiColor::White);
-
-	// This is a mess, yet simutaneously was the EASIEST way to represent this 
 	format!(
-		"{}\n\n{}\n\n{}\n",
-		format!("{ERR}{err_message}{DEFAULT}"),
-		format!("{DARK}{} | {DEFAULT}{}", line.number, line.text),
-		format!("{DARK}-> {HELP}help: {help_message}{DEFAULT}")
+		"{ERR}{err_message}{DEFAULT}\n\n{line}\n\n{DARK}-> {HELP}help: {help_message}{DEFAULT}\n"
 	)
 }
 

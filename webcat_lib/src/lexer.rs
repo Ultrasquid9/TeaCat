@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
+use crate::error::Line;
 use crate::vecdeque;
 
 const QUOTES: &[char] = &['\'', '"'];
@@ -13,7 +14,7 @@ static WHITESPACE: LazyLock<Regex> =
 
 /// A list of [Tokens](Token) built from a WebCat string.
 #[derive(PartialEq, Eq, Debug)]
-pub struct TokenStream(pub VecDeque<Token>);
+pub struct TokenStream(pub VecDeque<(Line, Token)>);
 
 /// The basic building blocks of a WebCat file.
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -43,11 +44,28 @@ impl TokenStream {
 	/// Lexes a [String] into a list of [Tokens](Token).
 	pub fn lex(mut input: String) -> Self {
 		let mut tokenstream = Self::default();
-		let mut current = Token::empty();
+		let mut current = (Line::default(), Token::empty());
 
 		let mut escaped = false;
 
+		let lines = input.clone();
+		let mut lines = lines.lines().enumerate();
+		macro_rules! next_line {
+			() => {
+				let (number, text) = lines.next().unwrap_or((0, ""));
+				current.0 = Line {
+					number,
+					text: text.into(),
+				};
+			};
+		}
+		next_line!();
+
 		while !input.is_empty() {
+			if input.starts_with("\n") {
+				next_line!();
+			}
+
 			// Handling the backslash escape
 			// TODO: \n, \t, etc
 			if escaped {
@@ -72,14 +90,15 @@ impl TokenStream {
 			}
 
 			// Handling string literals
-			if matches!(current, Token::Stringliteral(_)) {
+			if matches!(current, (_, Token::Stringliteral(_))) {
 				tokenstream.push_current_ch(&mut input, &mut current);
 				continue;
 			}
 
 			// Checks for one of the operators/keywords is present
 			if let Some(token) = rules(&mut input) {
-				let token = replace(&mut current, token);
+				let line = current.0.clone();
+				let token = replace(&mut current, (line, token));
 				tokenstream.push(token);
 				continue;
 			}
@@ -98,22 +117,22 @@ impl TokenStream {
 
 	/// Removes the first [char] of the given [String] and inserts it into the
 	/// current [Token] if possible, or creates a new token if not.
-	fn push_current_ch(&mut self, input: &mut String, current: &mut Token) {
+	fn push_current_ch(&mut self, input: &mut String, current: &mut (Line, Token)) {
 		let ch = input.remove(0);
 
 		macro_rules! token_switcheroo {
 			($t:expr) => {
-				let token = replace(current, $t);
+				let token = replace(current, (current.0.clone(), $t));
 				self.push(token);
 			};
 		}
 
 		// Handling String Literals
-		if QUOTES.contains(&ch) && !matches!(current, Token::Stringliteral(_)) {
+		if QUOTES.contains(&ch) && !matches!(current, (_, Token::Stringliteral(_))) {
 			token_switcheroo!(Token::Stringliteral(StringLiteral::new(ch)));
 			return;
 		}
-		if matches!(current, Token::Stringliteral(str) if str.quotes == ch) {
+		if matches!(current, (_, Token::Stringliteral(str)) if str.quotes == ch) {
 			token_switcheroo!(Token::empty());
 			return;
 		}
@@ -121,8 +140,8 @@ impl TokenStream {
 		// If the current Token does not store text, set it to one that does.
 		// - If the current Token implies an Ident, create one.
 		// - Otherwise, create a Text.
-		if current.string_mut().is_none() {
-			let token = if current.creates_ident() {
+		if current.1.string_mut().is_none() {
+			let token = if current.1.creates_ident() {
 				Token::Ident("".into())
 			} else {
 				Token::empty()
@@ -130,17 +149,17 @@ impl TokenStream {
 			token_switcheroo!(token);
 		}
 		// An Ident cannot contain whitespace.
-		if matches!(current, Token::Ident(_)) && ch.is_whitespace() {
+		if matches!(current, (_, Token::Ident(_))) && ch.is_whitespace() {
 			token_switcheroo!(Token::empty());
 		}
 
-		current.push_char(ch);
+		current.1.push_char(ch);
 	}
 
 	/// Converts any sequences of whitespace within [Tokens](Token) into singular spaces, and
 	/// removes any tokens consisting only of whitespace.
 	fn clean_tokens(&mut self) {
-		for token in &mut self.0 {
+		for (_, token) in &mut self.0 {
 			if let Some(str) = token.string_mut() {
 				*str = WHITESPACE
 					.replace_all(
@@ -151,18 +170,17 @@ impl TokenStream {
 			}
 		}
 
-		self.0 = self
-			.0
-			.iter()
-			.filter(
-				|token| !matches!((*token).clone().string_mut(), Some(str) if str.trim().is_empty()),
-			)
-			.cloned()
-			.collect();
+		self.0.retain(
+			|(_, token)| !matches!((*token).clone().string_mut(), Some(str) if str.trim().is_empty()),
+		);
 	}
 
-	/// Inserts a [Token] into the back of a [TokenStream].
-	pub fn push(&mut self, val: Token) {
+	pub fn tokens(&self) -> VecDeque<Token> {
+		self.0.iter().map(|(_, token)| token.clone()).collect()
+	}
+
+	/// Inserts a [Token] and a [Line] into the back of a [TokenStream].
+	pub fn push(&mut self, val: (Line, Token)) {
 		self.0.push_back(val);
 	}
 }
@@ -175,7 +193,12 @@ impl Default for TokenStream {
 
 impl From<VecDeque<Token>> for TokenStream {
 	fn from(value: VecDeque<Token>) -> Self {
-		Self(value)
+		Self(
+			value
+				.iter()
+				.map(|token| (Line::default(), token.clone()))
+				.collect(),
+		)
 	}
 }
 
@@ -264,7 +287,7 @@ mod tests {
 		let tokenstream = TokenStream::lex(str);
 
 		assert_eq!(
-			tokenstream,
+			tokenstream.tokens(),
 			vecdeque![
 				Token::Andpersand,
 				Token::Ident("x".into()),
@@ -274,7 +297,6 @@ mod tests {
 				Token::Andpersand,
 				Token::Ident("x".into()),
 			]
-			.into()
 		);
 	}
 
@@ -296,13 +318,12 @@ mod tests {
 		let tokenstream = TokenStream::lex(str);
 
 		assert_eq!(
-			tokenstream,
+			tokenstream.tokens(),
 			vecdeque![
 				Token::Andpersand,
 				Token::Ident("x".into()),
 				Token::Text("&x".into()),
 			]
-			.into()
 		);
 	}
 
@@ -317,7 +338,7 @@ mod tests {
 		let tokenstream = TokenStream::lex(str);
 
 		assert_eq!(
-			tokenstream,
+			tokenstream.tokens(),
 			vecdeque![
 				Token::Colon,
 				Token::Ident("a".into()),
@@ -328,7 +349,6 @@ mod tests {
 				Token::OpenBracket,
 				Token::CloseBracket,
 			]
-			.into()
 		);
 	}
 
@@ -337,7 +357,7 @@ mod tests {
 		let tokenstream = TokenStream::lex(":tag{x:\"1\" y:'2'}[]".into());
 
 		assert_eq!(
-			tokenstream,
+			tokenstream.tokens(),
 			vecdeque![
 				Token::Colon,
 				Token::Ident("tag".into()),
@@ -358,27 +378,25 @@ mod tests {
 				Token::OpenBracket,
 				Token::CloseBracket,
 			]
-			.into(),
 		)
 	}
 
 	#[test]
 	fn strlit() {
 		assert_eq!(
-			TokenStream::lex("'input'".into()),
+			TokenStream::lex("'input'".into()).tokens(),
 			vecdeque![Token::Stringliteral(StringLiteral {
 				quotes: '\'',
 				content: "input".into()
 			})]
-			.into()
 		)
 	}
 
 	#[test]
 	fn whitespace() {
 		assert_eq!(
-			TokenStream::lex("a\ta".into()),
-			vecdeque![Token::Text("a a".into())].into()
+			TokenStream::lex("a\ta".into()).tokens(),
+			vecdeque![Token::Text("a a".into())]
 		);
 	}
 
@@ -395,7 +413,7 @@ mod tests {
 		let tokenstream = TokenStream::lex(str);
 
 		assert_eq!(
-			tokenstream,
+			tokenstream.tokens(),
 			vecdeque![
 				// Line 1
 				Token::Andpersand,
@@ -425,7 +443,6 @@ mod tests {
 				Token::CloseBracket,
 				Token::CloseBracket,
 			]
-			.into()
 		);
 	}
 }

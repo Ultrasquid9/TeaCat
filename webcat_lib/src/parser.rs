@@ -47,7 +47,7 @@ impl Ast {
 		let mut nodes = vec![];
 
 		while !tokenstream.0.is_empty() {
-			let Some(token) = tokenstream.0.pop_front() else {
+			let Some((_line, token)) = tokenstream.0.pop_front() else {
 				todo!("Error handling")
 			};
 
@@ -108,18 +108,18 @@ impl Attributes {
 		let mut attributes = HashMap::new();
 
 		loop {
-			let Some(token) = tokenstream.0.pop_front() else {
+			let Some((_line, token)) = tokenstream.0.pop_front() else {
 				todo!("Error Handling")
 			};
 
 			match token {
 				Token::CloseBrace => break,
 				Token::Text(key) => {
-					let Some(Token::Colon) = tokenstream.0.pop_front() else {
+					let Some((_, Token::Colon)) = tokenstream.0.pop_front() else {
 						todo!("Error Handling");
 					};
 					let val = match tokenstream.0.pop_front() {
-						Some(Token::Stringliteral(val)) => val,
+						Some((_, Token::Stringliteral(val))) => val,
 						other => {
 							println!("Unexpected input in attributes: {other:?}");
 							todo!("Error Handling");
@@ -147,12 +147,12 @@ impl From<HashMap<String, StringLiteral>> for Attributes {
 }
 
 fn var(tokenstream: &mut TokenStream) -> AstNode {
-	let Some(Token::Ident(name)) = tokenstream.0.pop_front() else {
+	let Some((_, Token::Ident(name))) = tokenstream.0.pop_front() else {
 		return AstNode::text("&");
 	};
 
 	// DONT pop from front until we know that the token is one we want
-	if let Some(Token::Walrus) = tokenstream.0.front() {
+	if let Some((_, Token::Walrus)) = tokenstream.0.front() {
 		// Now we know that it's safe to remove
 		tokenstream.0.pop_front();
 		AstNode::Var(Var::new(name, tokenstream))
@@ -162,17 +162,17 @@ fn var(tokenstream: &mut TokenStream) -> AstNode {
 }
 
 fn tag(tokenstream: &mut TokenStream) -> AstNode {
-	let Some(Token::Ident(name)) = tokenstream.0.pop_front() else {
+	let Some((_, Token::Ident(name))) = tokenstream.0.pop_front() else {
 		return AstNode::text(":");
 	};
 
 	let mut attributes = Attributes::new();
-	if let Some(Token::OpenBrace) = tokenstream.0.front() {
+	if let Some((_, Token::OpenBrace)) = tokenstream.0.front() {
 		tokenstream.0.pop_front();
 		attributes = Attributes::parse(tokenstream)
 	}
 
-	let Some(Token::OpenBracket) = tokenstream.0.pop_front() else {
+	let Some((_, Token::OpenBracket)) = tokenstream.0.pop_front() else {
 		return AstNode::Text(":".to_string() + &name);
 	};
 

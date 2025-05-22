@@ -36,11 +36,7 @@ impl ExpandedAst {
 				}
 				AstNode::AccessVar(var) => {
 					let Some(contents) = vars.get(&var) else {
-						return Err(WebCatError::UndefinedVarError(
-							var,
-							todo!("Get line number over here")
-						)
-						.into());
+						return Err(WebCatError::UndefinedVarError(var, Line::default()).into());
 					};
 					html.0.append(&mut contents.0.clone());
 				}
