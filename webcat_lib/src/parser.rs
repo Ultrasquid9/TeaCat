@@ -71,7 +71,6 @@ impl Ast {
 				Token::CloseBrace => AstNode::text("}"),
 				Token::SemiColon => AstNode::text(";"),
 				Token::Walrus => AstNode::text(":="),
-				Token::Comma => AstNode::text(","),
 			});
 		}
 
@@ -108,9 +107,6 @@ impl Attributes {
 	fn parse(tokenstream: &mut TokenStream) -> Self {
 		let mut attributes = HashMap::new();
 
-		// Adding a comma here makes it easier to parse
-		tokenstream.0.push_front(Token::Comma);
-
 		loop {
 			let Some(token) = tokenstream.0.pop_front() else {
 				todo!("Error Handling")
@@ -118,15 +114,7 @@ impl Attributes {
 
 			match token {
 				Token::CloseBrace => break,
-				Token::Comma => {
-					let key = match tokenstream.0.pop_front() {
-						Some(Token::Text(key)) => key.trim().to_string(),
-						Some(Token::CloseBrace) => break,
-						other => {
-							println!("Unexpected input in attributes: {other:?}");
-							todo!("Error Handling");
-						}
-					};
+				Token::Text(key) => {
 					let Some(Token::Colon) = tokenstream.0.pop_front() else {
 						todo!("Error Handling");
 					};
@@ -140,6 +128,7 @@ impl Attributes {
 
 					attributes.insert(key, val);
 				}
+
 				other => {
 					println!("Unexpected input in attributes: {other:?}");
 					todo!("Error Handling");
@@ -303,7 +292,7 @@ mod tests {
 
 	#[test]
 	fn attributes() {
-		let ast = Ast::parse(TokenStream::lex(":tag{x:\"1\", y:\"2\"}[]".into()));
+		let ast = Ast::parse(TokenStream::lex(":tag{x:\"1\"y:\"2\"}[]".into()));
 
 		assert_eq!(
 			ast,
@@ -318,19 +307,6 @@ mod tests {
 			})]
 			.into()
 		)
-	}
-
-	#[test]
-	fn commas() {
-		assert_eq!(
-			Ast::parse(crate::lexer::TokenStream::lex("Hello, World!".into())),
-			vecdeque![
-				AstNode::Text("Hello".into()),
-				AstNode::Text(",".into()),
-				AstNode::Text(" World!".into()),
-			]
-			.into()
-		);
 	}
 
 	#[test]

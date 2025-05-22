@@ -6,7 +6,7 @@ use regex::Regex;
 
 use crate::vecdeque;
 
-const QUOTES: &[char] = &['\'', '"', '`'];
+const QUOTES: &[char] = &['\'', '"'];
 
 static WHITESPACE: LazyLock<Regex> =
 	LazyLock::new(|| regex::Regex::new("\\s+").expect("Regex should compile"));
@@ -31,7 +31,6 @@ pub enum Token {
 	Colon,
 	SemiColon,
 	Andpersand,
-	Comma,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -237,7 +236,6 @@ fn rules(input: &mut String) -> Option<Token> {
 		(":", Token::Colon),
 		(";", Token::SemiColon),
 		("&", Token::Andpersand),
-		(",", Token::Comma),
 	];
 
 	for (key, token) in rules {
@@ -336,7 +334,7 @@ mod tests {
 
 	#[test]
 	fn attributes() {
-		let tokenstream = TokenStream::lex(":tag{x:`1`, y:'2'}[]".into());
+		let tokenstream = TokenStream::lex(":tag{x:\"1\" y:'2'}[]".into());
 
 		assert_eq!(
 			tokenstream,
@@ -347,10 +345,9 @@ mod tests {
 				Token::Text("x".into()),
 				Token::Colon,
 				Token::Stringliteral(StringLiteral {
-					quotes: '`',
+					quotes: '"',
 					content: "1".into()
 				}),
-				Token::Comma,
 				Token::Text(" y".into()),
 				Token::Colon,
 				Token::Stringliteral(StringLiteral {
@@ -382,19 +379,6 @@ mod tests {
 		assert_eq!(
 			TokenStream::lex("a\ta".into()),
 			vecdeque![Token::Text("a a".into())].into()
-		);
-	}
-
-	#[test]
-	fn commas() {
-		assert_eq!(
-			TokenStream::lex("Hello, World!".into()),
-			vecdeque![
-				Token::Text("Hello".into()),
-				Token::Comma,
-				Token::Text(" World!".into()),
-			]
-			.into()
 		);
 	}
 
