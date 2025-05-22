@@ -1,46 +1,27 @@
 #![allow(clippy::tabs_in_doc_comments)]
 
+use std::path::PathBuf;
+
+use clap::{ArgMatches, arg, value_parser};
 use webcat_lib::prelude::*;
 
-pub const INPUT: &str = r#"
-# Comments use hashtags
-
-# Variables
-&hello_world := Hello, World!;
-
-# Just about anything can be assigned to a variable
-&title := :title[
-	My Webpage
-];
-
-# Macros
-# Probably similar to Rust's declarative macros
-# Start with a !, the rest of the syntax idk yet
-
-:head[
-	# An & symbol allows you to access a variable 
-	&title
-]
-
-:body[
-	:p[
-		# A backslash escapes the following character
-		\&title # will print "&title" in the generated HTML 
-
-		:br[]
-
-		# Use curly braces for tag attributes
-		:img{
-			src: "https://www.w3schools.com/images/w3schools_green.jpg", 
-			alt: "Test Image",
-		} []
-	]
-]
-"#;
-
 fn main() -> anyhow::Result<()> {
-	let html = eval_webcat_string::<HtmlRenderer, _>(INPUT.into())?;
+	let args = args();
+
+	let Some(file) = args.try_get_one::<PathBuf>("file")? else {
+		todo!("Error Handling")
+	};
+
+	let str = std::fs::read_to_string(file)?;
+
+	let html = eval_webcat_string::<HtmlRenderer, _>(str)?;
 	println!("{html}");
 
 	Ok(())
+}
+
+fn args() -> ArgMatches {
+	clap::command!()
+		.arg(arg!([file] "The file to read").value_parser(value_parser!(PathBuf)))
+		.get_matches()
 }

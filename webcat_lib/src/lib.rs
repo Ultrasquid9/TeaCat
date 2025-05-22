@@ -78,11 +78,11 @@ macro_rules! vecdeque {
 }
 
 pub mod prelude {
+	pub use crate::eval_webcat_string;
 	pub use crate::expanded::{
 		ExpandedAst, ExpandedNode, ExpandedTag,
 		renderer::{Renderer, html::HtmlRenderer},
 	};
 	pub use crate::lexer::TokenStream;
 	pub use crate::parser::{Ast, Attributes};
-	pub use crate::eval_webcat_string;
 }
