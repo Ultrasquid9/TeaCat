@@ -370,6 +370,19 @@ mod tests {
 	}
 
 	#[test]
+	fn commas() {
+		assert_eq!(
+			TokenStream::lex("Hello, World!".into()),
+			vecdeque![
+				Token::Text("Hello".into()),
+				Token::Comma,
+				Token::Text(" World!".into()),
+			]
+			.into()
+		);
+	}
+
+	#[test]
 	fn final_boss() {
 		// Simplified version of the main.rs example
 		let str = "
