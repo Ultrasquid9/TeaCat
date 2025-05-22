@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::{
-	error::{Line, WebCatError},
-	parser::{Ast, AstNode, Attributes, Tag},
+	parser::{AstNode, Tag},
+	prelude::*,
 };
 
 pub mod renderer;
@@ -34,9 +34,9 @@ impl ExpandedAst {
 				AstNode::Var(var) => {
 					vars.insert(var.name, ExpandedAst::expand(var.contents, &vars)?);
 				}
-				AstNode::AccessVar(var) => {
+				AstNode::AccessVar(line, var) => {
 					let Some(contents) = vars.get(&var) else {
-						return Err(WebCatError::UndefinedVarError(var, Line::default()).into());
+						return Err(WebCatError::UndefinedVarError(var, line).into());
 					};
 					html.0.append(&mut contents.0.clone());
 				}

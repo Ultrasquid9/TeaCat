@@ -8,23 +8,21 @@
 	My Webpage
 ];
 
-&abc
-
 # Macros
 #
 # Accept variables as arguments, allowing for complex repeated structures.
 # Generally quite simple, not turing-complete.
-# Syntax WIP. 
+# Syntax WIP.
 
 :head[
-	# An & symbol allows you to access a variable 
+	# An & symbol allows you to access a variable
 	&title
 ]
 
 :body[
 	:p[
 		# A backslash escapes the following character
-		\&title # will print "&title" in the generated HTML 
+		\&title # will print "&title" in the generated HTML
 
 		:br[]
 

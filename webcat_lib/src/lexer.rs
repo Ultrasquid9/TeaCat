@@ -59,7 +59,7 @@ impl TokenStream {
 				};
 			};
 		}
-		next_line!();
+		//next_line!();
 
 		while !input.is_empty() {
 			if input.starts_with("\n") {
@@ -82,7 +82,7 @@ impl TokenStream {
 			// Handling comments
 			if input.starts_with("#") {
 				if let Some((_, str)) = input.split_once("\n") {
-					input = str.into();
+					input = "\n".to_string() + str.into();
 				} else {
 					input.clear();
 				}

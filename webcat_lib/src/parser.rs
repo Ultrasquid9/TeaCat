@@ -1,6 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
+	error::Line,
 	lexer::{StringLiteral, Token, TokenStream},
 	vecdeque,
 };
@@ -15,7 +16,7 @@ pub enum AstNode {
 	Text(String),
 	Tag(Tag),
 	Var(Var),
-	AccessVar(String),
+	AccessVar(Line, String),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -39,11 +40,11 @@ impl Ast {
 		vecdeque![].into()
 	}
 
-	pub fn parse(mut tokenstream: TokenStream) -> Self {
+	pub fn parse(mut tokenstream: TokenStream) -> anyhow::Result<Self> {
 		Self::parse_until(&mut tokenstream, None)
 	}
 
-	fn parse_until(tokenstream: &mut TokenStream, until: Option<Token>) -> Self {
+	fn parse_until(tokenstream: &mut TokenStream, until: Option<Token>) -> anyhow::Result<Self> {
 		let mut nodes = vec![];
 
 		while !tokenstream.0.is_empty() {
@@ -56,8 +57,8 @@ impl Ast {
 			}
 
 			nodes.push(match token {
-				Token::Andpersand => var(tokenstream),
-				Token::Colon => tag(tokenstream),
+				Token::Andpersand => var(tokenstream)?,
+				Token::Colon => tag(tokenstream)?,
 
 				Token::Text(text) => AstNode::Text(text),
 
@@ -74,7 +75,7 @@ impl Ast {
 			});
 		}
 
-		Self(nodes.into())
+		Ok(Self(nodes.into()))
 	}
 }
 
@@ -91,11 +92,11 @@ impl AstNode {
 }
 
 impl Var {
-	fn new(name: String, tokenstream: &mut TokenStream) -> Self {
-		Self {
+	fn new(name: String, tokenstream: &mut TokenStream) -> anyhow::Result<Self> {
+		Ok(Self {
 			name,
-			contents: Ast::parse_until(tokenstream, Some(Token::SemiColon)),
-		}
+			contents: Ast::parse_until(tokenstream, Some(Token::SemiColon))?,
+		})
 	}
 }
 
@@ -104,7 +105,7 @@ impl Attributes {
 		Self(HashMap::new())
 	}
 
-	fn parse(tokenstream: &mut TokenStream) -> Self {
+	fn parse(tokenstream: &mut TokenStream) -> anyhow::Result<Self> {
 		let mut attributes = HashMap::new();
 
 		loop {
@@ -136,7 +137,7 @@ impl Attributes {
 			}
 		}
 
-		Self(attributes)
+		Ok(Self(attributes))
 	}
 }
 
@@ -146,41 +147,41 @@ impl From<HashMap<String, StringLiteral>> for Attributes {
 	}
 }
 
-fn var(tokenstream: &mut TokenStream) -> AstNode {
-	let Some((_, Token::Ident(name))) = tokenstream.0.pop_front() else {
-		return AstNode::text("&");
+fn var(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
+	let Some((line, Token::Ident(name))) = tokenstream.0.pop_front() else {
+		return Ok(AstNode::text("&"));
 	};
 
 	// DONT pop from front until we know that the token is one we want
-	if let Some((_, Token::Walrus)) = tokenstream.0.front() {
+	Ok(if let Some((_, Token::Walrus)) = tokenstream.0.front() {
 		// Now we know that it's safe to remove
 		tokenstream.0.pop_front();
-		AstNode::Var(Var::new(name, tokenstream))
+		AstNode::Var(Var::new(name, tokenstream)?)
 	} else {
-		AstNode::AccessVar(name)
-	}
+		AstNode::AccessVar(line, name)
+	})
 }
 
-fn tag(tokenstream: &mut TokenStream) -> AstNode {
+fn tag(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
 	let Some((_, Token::Ident(name))) = tokenstream.0.pop_front() else {
-		return AstNode::text(":");
+		return Ok(AstNode::text(":"));
 	};
 
 	let mut attributes = Attributes::new();
 	if let Some((_, Token::OpenBrace)) = tokenstream.0.front() {
 		tokenstream.0.pop_front();
-		attributes = Attributes::parse(tokenstream)
+		attributes = Attributes::parse(tokenstream)?;
 	}
 
 	let Some((_, Token::OpenBracket)) = tokenstream.0.pop_front() else {
-		return AstNode::Text(":".to_string() + &name);
+		return Ok(AstNode::Text(":".to_string() + &name));
 	};
 
-	AstNode::Tag(Tag {
+	Ok(AstNode::Tag(Tag {
 		name,
 		attributes,
-		contents: Ast::parse_until(tokenstream, Some(Token::CloseBracket)),
-	})
+		contents: Ast::parse_until(tokenstream, Some(Token::CloseBracket))?,
+	}))
 }
 
 #[cfg(test)]
@@ -200,7 +201,7 @@ mod tests {
 			Token::Ident("x".into()),
 		];
 
-		let ast = Ast::parse(tokenstream.into());
+		let ast = Ast::parse(tokenstream.into()).unwrap();
 
 		assert_eq!(
 			ast,
@@ -209,7 +210,7 @@ mod tests {
 					name: "x".into(),
 					contents: vecdeque![AstNode::Text(" X".into())].into()
 				}),
-				AstNode::AccessVar("x".into()),
+				AstNode::AccessVar(Line::default(), "x".into()),
 			]
 			.into()
 		);
@@ -228,7 +229,7 @@ mod tests {
 			Token::CloseBracket,
 		];
 
-		let ast = Ast::parse(tokenstream.into());
+		let ast = Ast::parse(tokenstream.into()).unwrap();
 
 		assert_eq!(
 			ast,
@@ -265,7 +266,7 @@ mod tests {
 			Token::CloseBracket,
 		];
 
-		let ast = Ast::parse(tokenstream.into());
+		let ast = Ast::parse(tokenstream.into()).unwrap();
 
 		assert_eq!(
 			ast,
@@ -292,7 +293,7 @@ mod tests {
 
 	#[test]
 	fn attributes() {
-		let ast = Ast::parse(TokenStream::lex(":tag{x:\"1\"y:\"2\"}[]".into()));
+		let ast = Ast::parse(TokenStream::lex(":tag{x:\"1\"y:\"2\"}[]".into())).unwrap();
 
 		assert_eq!(
 			ast,
@@ -319,7 +320,7 @@ mod tests {
 		"
 		.to_string();
 
-		let ast = Ast::parse(TokenStream::lex(str));
+		let ast = Ast::parse(TokenStream::lex(str)).unwrap();
 
 		assert_eq!(
 			ast,
@@ -336,7 +337,14 @@ mod tests {
 				AstNode::Tag(Tag {
 					name: "head".into(),
 					attributes: Attributes::new(),
-					contents: vecdeque![AstNode::AccessVar("title".into())].into()
+					contents: vecdeque![AstNode::AccessVar(
+						Line {
+							number: 2,
+							text: "\t\t:head[&title]".into()
+						},
+						"title".into()
+					)]
+					.into()
 				}),
 				AstNode::Tag(Tag {
 					name: "body".into(),

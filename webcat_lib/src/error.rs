@@ -23,7 +23,11 @@ pub enum WebCatError {
 
 impl Display for Line {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		f.write_str(&format!("{DARK}{} | {DEFAULT}{}", self.number, self.text))
+		f.write_str(&format!(
+			"{DARK}{} | {DEFAULT}{}",
+			self.number + 1,
+			self.text
+		))
 	}
 }
 

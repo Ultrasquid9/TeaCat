@@ -21,7 +21,7 @@
 //! .to_string();
 //!
 //! let tokenstream = TokenStream::lex(webcat_str);
-//! let ast = Ast::parse(tokenstream);
+//! let ast = Ast::parse(tokenstream).unwrap();
 //! let expanded = ExpandedAst::expand(ast, &HashMap::new()).unwrap();
 //! let html = HtmlRenderer::render(expanded);
 //!
@@ -56,7 +56,7 @@ pub mod parser;
 /// ```
 pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(webcat_string: String) -> anyhow::Result<Out> {
 	let tokenstream = TokenStream::lex(webcat_string);
-	let ast = Ast::parse(tokenstream);
+	let ast = Ast::parse(tokenstream)?;
 	let expanded = ExpandedAst::expand(ast, &HashMap::new())?;
 	Ok(Rend::render(expanded))
 }
@@ -79,6 +79,7 @@ macro_rules! vecdeque {
 }
 
 pub mod prelude {
+	pub use crate::error::WebCatError;
 	pub use crate::eval_webcat_string;
 	pub use crate::expanded::{
 		ExpandedAst, ExpandedNode, ExpandedTag,
