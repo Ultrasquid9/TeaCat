@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 regex = "1.11"
+html-escape = "0.2"

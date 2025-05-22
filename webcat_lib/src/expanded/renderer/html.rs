@@ -15,7 +15,7 @@ impl Renderer<String> for HtmlRenderer {
 		for node in ast.0 {
 			rendered.push_str(&match node {
 				ExpandedNode::Tag(tag) => self.render_tag(tag),
-				ExpandedNode::Text(text) => text,
+				ExpandedNode::Text(text) => self.render_text(text),
 			});
 		}
 
@@ -33,7 +33,7 @@ impl Renderer<String> for HtmlRenderer {
 	}
 
 	fn render_text(&mut self, text: String) -> String {
-		text
+		html_escape::encode_safe(&text).into()
 	}
 
 	fn render_attributes(&mut self, attributes: Attributes) -> String {
