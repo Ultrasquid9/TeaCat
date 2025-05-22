@@ -22,7 +22,7 @@
 //!
 //! let tokenstream = TokenStream::lex(webcat_str);
 //! let ast = Ast::parse(tokenstream);
-//! let expanded = ExpandedAst::expand(ast, &HashMap::new());
+//! let expanded = ExpandedAst::expand(ast, &HashMap::new()).unwrap();
 //! let html = HtmlRenderer::render(expanded);
 //!
 //! assert_eq!(
@@ -37,6 +37,7 @@ use std::collections::HashMap;
 
 use prelude::*;
 
+pub mod error;
 pub mod expanded;
 pub mod lexer;
 pub mod parser;
@@ -56,7 +57,7 @@ pub mod parser;
 pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(webcat_string: String) -> anyhow::Result<Out> {
 	let tokenstream = TokenStream::lex(webcat_string);
 	let ast = Ast::parse(tokenstream);
-	let expanded = ExpandedAst::expand(ast, &HashMap::new());
+	let expanded = ExpandedAst::expand(ast, &HashMap::new())?;
 	Ok(Rend::render(expanded))
 }
 

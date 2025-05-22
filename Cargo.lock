@@ -187,6 +187,7 @@ dependencies = [
 name = "webcat_lib"
 version = "0.1.0"
 dependencies = [
+ "anstyle",
  "anyhow",
  "html-escape",
  "regex",

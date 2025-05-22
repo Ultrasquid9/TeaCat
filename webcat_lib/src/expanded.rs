@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::parser::{Ast, AstNode, Attributes, Tag};
+use crate::{
+	error::{Line, WebCatError},
+	parser::{Ast, AstNode, Attributes, Tag},
+};
 
 pub mod renderer;
 
@@ -22,38 +25,42 @@ pub struct ExpandedTag {
 }
 
 impl ExpandedAst {
-	pub fn expand(ast: Ast, vars: &HashMap<String, ExpandedAst>) -> Self {
+	pub fn expand(ast: Ast, vars: &HashMap<String, ExpandedAst>) -> anyhow::Result<Self> {
 		let mut html = Self(vec![]);
 		let mut vars = vars.clone();
 
 		for node in ast.0 {
 			match node {
 				AstNode::Var(var) => {
-					vars.insert(var.name, ExpandedAst::expand(var.contents, &vars));
+					vars.insert(var.name, ExpandedAst::expand(var.contents, &vars)?);
 				}
 				AstNode::AccessVar(var) => {
 					let Some(contents) = vars.get(&var) else {
-						todo!("Error Handling")
+						return Err(WebCatError::UndefinedVarError(
+							var,
+							todo!("Get line number over here")
+						)
+						.into());
 					};
 					html.0.append(&mut contents.0.clone());
 				}
 				AstNode::Tag(tag) => html
 					.0
-					.push(ExpandedNode::Tag(ExpandedTag::from_tag(tag, &vars))),
+					.push(ExpandedNode::Tag(ExpandedTag::from_tag(tag, &vars)?)),
 				AstNode::Text(text) => html.0.push(ExpandedNode::Text(text)),
 			}
 		}
 
-		html
+		Ok(html)
 	}
 }
 
 impl ExpandedTag {
-	fn from_tag(tag: Tag, vars: &HashMap<String, ExpandedAst>) -> Self {
-		Self {
+	fn from_tag(tag: Tag, vars: &HashMap<String, ExpandedAst>) -> anyhow::Result<Self> {
+		Ok(Self {
 			name: tag.name,
 			attributes: tag.attributes,
-			contents: ExpandedAst::expand(tag.contents, vars),
-		}
+			contents: ExpandedAst::expand(tag.contents, vars)?,
+		})
 	}
 }
