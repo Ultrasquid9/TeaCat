@@ -5,7 +5,6 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-use crate::error::lines::Line;
 use crate::vecdeque;
 
 const QUOTES: &[char] = &['\'', '"'];
@@ -15,7 +14,7 @@ static WHITESPACE: LazyLock<Regex> =
 
 /// A list of [Tokens](Token) built from a WebCat string.
 #[derive(PartialEq, Eq, Debug)]
-pub struct TokenStream(pub VecDeque<(Line, Token)>);
+pub struct TokenStream(pub VecDeque<(usize, Token)>);
 
 /// The basic building blocks of a WebCat file.
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -46,23 +45,13 @@ impl TokenStream {
 	pub fn lex(input: impl Into<String>) -> Self {
 		let mut input = input.into();
 		let mut tokenstream = Self::default();
-		let mut current = (Line::default(), Token::empty());
+		let mut current = (0, Token::empty());
 
 		let mut escaped = false;
 
-		let lines = input.clone();
-		let mut lines = lines.lines().enumerate();
-		macro_rules! next_line {
-			() => {
-				let (number, text) = lines.next().unwrap_or((0, ""));
-				current.0 = Line::new(number, text);
-			};
-		}
-		next_line!();
-
 		while !input.is_empty() {
 			if input.starts_with("\n") {
-				next_line!();
+				current.0 += 1;
 			}
 
 			// Handling the backslash escape
@@ -116,7 +105,7 @@ impl TokenStream {
 
 	/// Removes the first [char] of the given [String] and inserts it into the
 	/// current [Token] if possible, or creates a new token if not.
-	fn push_current_ch(&mut self, input: &mut String, current: &mut (Line, Token)) {
+	fn push_current_ch(&mut self, input: &mut String, current: &mut (usize, Token)) {
 		let ch = input.remove(0);
 
 		macro_rules! token_switcheroo {
@@ -179,7 +168,7 @@ impl TokenStream {
 	}
 
 	/// Inserts a [Token] and a [Line] into the back of a [TokenStream].
-	pub fn push(&mut self, val: (Line, Token)) {
+	pub fn push(&mut self, val: (usize, Token)) {
 		self.0.push_back(val);
 	}
 }
@@ -192,12 +181,7 @@ impl Default for TokenStream {
 
 impl From<VecDeque<Token>> for TokenStream {
 	fn from(value: VecDeque<Token>) -> Self {
-		Self(
-			value
-				.iter()
-				.map(|token| (Line::default(), token.clone()))
-				.collect(),
-		)
+		Self(value.iter().map(|token| (0, token.clone())).collect())
 	}
 }
 

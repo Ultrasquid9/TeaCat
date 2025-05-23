@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-	error::{WebCatError, lines::Line},
+	error::WebCatError,
 	lexer::{StringLiteral, Token, TokenStream},
 	vecdeque,
 };
@@ -16,7 +16,7 @@ pub enum AstNode {
 	Text(String),
 	Tag(Tag),
 	Var(Var),
-	AccessVar(Line, String),
+	AccessVar(usize, String),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -46,7 +46,7 @@ impl Ast {
 
 	fn parse_until(tokenstream: &mut TokenStream, until: Option<Token>) -> anyhow::Result<Self> {
 		let mut nodes = vec![];
-		let mut current_line = Line::default();
+		let mut current_line = 0;
 
 		while !tokenstream.0.is_empty() {
 			let (line, token) = tokenstream
@@ -107,13 +107,13 @@ impl Attributes {
 
 	fn parse(tokenstream: &mut TokenStream) -> anyhow::Result<Self> {
 		let mut attributes = HashMap::new();
-		let mut current_line = Line::default();
+		let mut current_line = 0;
 
 		loop {
 			let Some((line, token)) = tokenstream.0.pop_front() else {
 				return Err(WebCatError::EarlyEof(Token::CloseBrace, current_line).into());
 			};
-			current_line = line.clone();
+			current_line = line;
 
 			match token {
 				Token::CloseBrace => break,
@@ -122,7 +122,7 @@ impl Attributes {
 						Some((_, Token::Colon)) => (),
 
 						Some((line, token)) => {
-							return Err(WebCatError::UnexpectedAttribute(token, line).into());
+							return Err(WebCatError::UnexpectedAttr(token, line).into());
 						}
 
 						_ => {
@@ -133,7 +133,7 @@ impl Attributes {
 						Some((_, Token::Stringliteral(val))) => val,
 
 						Some((line, token)) => {
-							return Err(WebCatError::UnexpectedAttribute(token, line).into());
+							return Err(WebCatError::UnexpectedAttr(token, line).into());
 						}
 
 						_ => {
@@ -152,7 +152,7 @@ impl Attributes {
 				}
 
 				other => {
-					return Err(WebCatError::UnexpectedAttribute(other, line).into());
+					return Err(WebCatError::UnexpectedAttr(other, line).into());
 				}
 			}
 		}
@@ -230,7 +230,7 @@ mod tests {
 					name: "x".into(),
 					contents: vecdeque![AstNode::Text(" X".into())].into()
 				}),
-				AstNode::AccessVar(Line::default(), "x".into()),
+				AstNode::AccessVar(0, "x".into()),
 			]
 			.into()
 		);
@@ -356,11 +356,7 @@ mod tests {
 				AstNode::Tag(Tag {
 					name: "head".into(),
 					attributes: Attributes::new(),
-					contents: vecdeque![AstNode::AccessVar(
-						Line::new(2, "\t\t:head[&title]"),
-						"title".into()
-					)]
-					.into()
+					contents: vecdeque![AstNode::AccessVar(2, "title".into())].into()
 				}),
 				AstNode::Tag(Tag {
 					name: "body".into(),

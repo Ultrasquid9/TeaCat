@@ -1,6 +1,7 @@
 # Comments use hashtags
 
 # Variables
+&should_err
 &hello_world := Hello, World!;
 
 # Just about anything can be assigned to a variable
