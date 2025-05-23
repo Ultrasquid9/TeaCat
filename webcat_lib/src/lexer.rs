@@ -425,7 +425,7 @@ mod tests {
 
 	#[test]
 	fn final_boss() {
-		// Simplified version of the main.rs example
+		// Simplified version of the test.wc example
 		let str = "
 		&title := :title[My Webpage];
 		:head[&title]

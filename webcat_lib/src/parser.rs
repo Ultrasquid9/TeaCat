@@ -46,14 +46,18 @@ impl Ast {
 
 	fn parse_until(tokenstream: &mut TokenStream, until: Option<Token>) -> anyhow::Result<Self> {
 		let mut nodes = vec![];
+		let mut current_line = Line::default();
 
 		while !tokenstream.0.is_empty() {
-			let Some((_line, token)) = tokenstream.0.pop_front() else {
-				todo!("Error handling")
-			};
+			let (line, token) = tokenstream
+				.0
+				.pop_front()
+				.expect("TokenStream should not be empty");
+
+			current_line = line;
 
 			if matches!(until, Some(ref t) if *t == token) {
-				break;
+				return Ok(Self(nodes.into()));
 			}
 
 			nodes.push(match token {
@@ -67,7 +71,11 @@ impl Ast {
 			});
 		}
 
-		Ok(Self(nodes.into()))
+		if let Some(token) = until {
+			Err(WebCatError::EarlyEof(token, current_line).into())
+		} else {
+			Ok(Self(nodes.into()))
+		}
 	}
 }
 
@@ -99,33 +107,52 @@ impl Attributes {
 
 	fn parse(tokenstream: &mut TokenStream) -> anyhow::Result<Self> {
 		let mut attributes = HashMap::new();
+		let mut current_line = Line::default();
 
 		loop {
-			let Some((_line, token)) = tokenstream.0.pop_front() else {
-				todo!("Error Handling")
+			let Some((line, token)) = tokenstream.0.pop_front() else {
+				return Err(WebCatError::EarlyEof(Token::CloseBrace, current_line).into());
 			};
+			current_line = line.clone();
 
 			match token {
 				Token::CloseBrace => break,
 				Token::Text(key) => {
-					let Some((_, Token::Colon)) = tokenstream.0.pop_front() else {
-						todo!("Error Handling");
-					};
+					match tokenstream.0.pop_front() {
+						Some((_, Token::Colon)) => (),
+
+						Some((line, token)) => {
+							return Err(WebCatError::UnexpectedAttribute(token, line).into());
+						}
+
+						_ => {
+							return Err(WebCatError::EarlyEof(Token::Colon, line).into());
+						}
+					}
 					let val = match tokenstream.0.pop_front() {
 						Some((_, Token::Stringliteral(val))) => val,
 
 						Some((line, token)) => {
 							return Err(WebCatError::UnexpectedAttribute(token, line).into());
 						}
-						_ => todo!(),
+
+						_ => {
+							return Err(WebCatError::EarlyEof(
+								Token::Stringliteral(StringLiteral {
+									quotes: '"',
+									content: "".into(),
+								}),
+								line,
+							)
+							.into());
+						}
 					};
 
 					attributes.insert(key, val);
 				}
 
 				other => {
-					println!("Unexpected input in attributes: {other:?}");
-					todo!("Error Handling");
+					return Err(WebCatError::UnexpectedAttribute(other, line).into());
 				}
 			}
 		}

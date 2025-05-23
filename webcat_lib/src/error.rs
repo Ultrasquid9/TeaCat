@@ -22,6 +22,7 @@ pub struct Line {
 pub enum WebCatError {
 	UndefinedVarError(String, Line),
 	UnexpectedAttribute(Token, Line),
+	EarlyEof(Token, Line),
 }
 
 impl Display for Line {
@@ -54,6 +55,14 @@ impl Display for WebCatError {
 			Self::UnexpectedAttribute(token, line) => write_err(
 				format!("unexpected token in attributes: '{token}'"),
 				format!("try surrounding the token with quotation marks: '\"{token}\"'"),
+				line.clone(),
+			),
+			Self::EarlyEof(token, line) => write_err(
+				format!("early end of file while seeking token '{token}'"),
+				format!(
+					"add the expected token to the end of the file: '{}{token}'",
+					line.text.trim()
+				),
 				line.clone(),
 			),
 		})
