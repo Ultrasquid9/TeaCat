@@ -313,7 +313,7 @@ mod tests {
 
 	#[test]
 	fn attributes() {
-		let ast = Ast::parse(TokenStream::lex(":tag{x:\"1\"y:\"2\"}[]".into())).unwrap();
+		let ast = Ast::parse(TokenStream::lex(":tag{x:\"1\"y:\"2\"}[]")).unwrap();
 
 		assert_eq!(
 			ast,
@@ -337,8 +337,7 @@ mod tests {
 		&title := :title[My Webpage];
 		:head[&title]
 		:body[:p[\\&title]]
-		"
-		.to_string();
+		";
 
 		let ast = Ast::parse(TokenStream::lex(str)).unwrap();
 

@@ -43,7 +43,8 @@ pub struct StringLiteral {
 
 impl TokenStream {
 	/// Lexes a [String] into a list of [Tokens](Token).
-	pub fn lex(mut input: String) -> Self {
+	pub fn lex(input: impl Into<String>) -> Self {
+		let mut input = input.into();
 		let mut tokenstream = Self::default();
 		let mut current = (Line::default(), Token::empty());
 
@@ -304,8 +305,7 @@ mod tests {
 		let str = "
 		&x := X;
 		&x
-		"
-		.to_string();
+		";
 
 		let tokenstream = TokenStream::lex(str);
 
@@ -335,8 +335,7 @@ mod tests {
 		let str = "
 		&x
 		\\&x
-		"
-		.to_string();
+		";
 
 		let tokenstream = TokenStream::lex(str);
 
@@ -355,8 +354,7 @@ mod tests {
 		let str = "
 		:a[]
 		:b[]
-		"
-		.to_string();
+		";
 
 		let tokenstream = TokenStream::lex(str);
 
@@ -377,7 +375,7 @@ mod tests {
 
 	#[test]
 	fn attributes() {
-		let tokenstream = TokenStream::lex(":tag{x:\"1\" y:'2'}[]".into());
+		let tokenstream = TokenStream::lex(":tag{x:\"1\" y:'2'}[]");
 
 		assert_eq!(
 			tokenstream.tokens(),
@@ -407,7 +405,7 @@ mod tests {
 	#[test]
 	fn strlit() {
 		assert_eq!(
-			TokenStream::lex("'input'".into()).tokens(),
+			TokenStream::lex("'input'").tokens(),
 			vecdeque![Token::Stringliteral(StringLiteral {
 				quotes: '\'',
 				content: "input".into()
@@ -418,7 +416,7 @@ mod tests {
 	#[test]
 	fn whitespace() {
 		assert_eq!(
-			TokenStream::lex("a\ta".into()).tokens(),
+			TokenStream::lex("a\ta").tokens(),
 			vecdeque![Token::Text("a a".into())]
 		);
 	}
@@ -430,8 +428,7 @@ mod tests {
 		&title := :title[My Webpage];
 		:head[&title]
 		:body[:p[\\&title]]
-		"
-		.to_string();
+		";
 
 		let tokenstream = TokenStream::lex(str);
 
