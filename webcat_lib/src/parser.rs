@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::{
-	error::{Line, WebCatError},
+	error::{WebCatError, lines::Line},
 	lexer::{StringLiteral, Token, TokenStream},
 	vecdeque,
 };
@@ -357,10 +357,7 @@ mod tests {
 					name: "head".into(),
 					attributes: Attributes::new(),
 					contents: vecdeque![AstNode::AccessVar(
-						Line {
-							number: 2,
-							text: "\t\t:head[&title]".into()
-						},
+						Line::new(2, "\t\t:head[&title]"),
 						"title".into()
 					)]
 					.into()

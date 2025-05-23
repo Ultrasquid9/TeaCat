@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-use crate::error::Line;
+use crate::error::lines::Line;
 use crate::vecdeque;
 
 const QUOTES: &[char] = &['\'', '"'];
@@ -55,10 +55,7 @@ impl TokenStream {
 		macro_rules! next_line {
 			() => {
 				let (number, text) = lines.next().unwrap_or((0, ""));
-				current.0 = Line {
-					number,
-					text: text.into(),
-				};
+				current.0 = Line::new(number, text);
 			};
 		}
 		next_line!();

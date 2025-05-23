@@ -54,7 +54,9 @@ pub mod parser;
 /// 	"<!DOCTYPE html><html><head></head></html>".to_string(),
 /// );
 /// ```
-pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(webcat_string: impl Into<String>) -> anyhow::Result<Out> {
+pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(
+	webcat_string: impl Into<String>,
+) -> anyhow::Result<Out> {
 	let tokenstream = TokenStream::lex(webcat_string);
 	let ast = Ast::parse(tokenstream)?;
 	let expanded = ExpandedAst::expand(ast, &HashMap::new())?;

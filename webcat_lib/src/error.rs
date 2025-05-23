@@ -6,42 +6,20 @@ use std::{
 use anstyle::{AnsiColor, Color, Style};
 
 use crate::lexer::Token;
+use lines::Line;
+
+pub mod lines;
 
 const ERR: Style = colorstyle(AnsiColor::Red);
 const HELP: Style = colorstyle(AnsiColor::Magenta);
 const DARK: Style = colorstyle(AnsiColor::BrightBlack);
 const DEFAULT: Style = colorstyle(AnsiColor::White);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Line {
-	pub number: usize,
-	pub text: String,
-}
-
 #[derive(Debug, Clone)]
 pub enum WebCatError {
 	UndefinedVarError(String, Line),
 	UnexpectedAttribute(Token, Line),
 	EarlyEof(Token, Line),
-}
-
-impl Display for Line {
-	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-		f.write_str(&format!(
-			"{DARK}{} | {DEFAULT}{}",
-			self.number + 1,
-			self.text
-		))
-	}
-}
-
-impl Default for Line {
-	fn default() -> Self {
-		Self {
-			number: 0,
-			text: "".into(),
-		}
-	}
 }
 
 impl Display for WebCatError {
