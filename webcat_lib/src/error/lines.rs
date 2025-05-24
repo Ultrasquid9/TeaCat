@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter, Result};
 
-use super::{DARK, DEFAULT};
+use super::{DARK, DEFAULT, VERT};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub(super) struct Lines([Option<(usize, String)>; 3]);
@@ -33,9 +33,9 @@ impl Display for Lines {
 
 		for line in &self.0 {
 			out.push_str(&if let Some((num, str)) = line {
-				format!("{DARK}{num:3} | {DEFAULT}{str}\n")
+				format!("{DARK}{num:3} {VERT} {DEFAULT}{str}\n")
 			} else {
-				format!("{DARK}    |{DEFAULT}\n")
+				format!("{DARK}    {VERT} {DEFAULT}\n")
 			});
 		}
 

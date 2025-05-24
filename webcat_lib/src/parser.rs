@@ -72,7 +72,7 @@ impl Ast {
 		}
 
 		if let Some(token) = until {
-			Err(WebCatError::EarlyEof(token, current_line).into())
+			Err(WebCatError::EarlyEof(current_line, token).into())
 		} else {
 			Ok(Self(nodes.into()))
 		}
@@ -111,7 +111,7 @@ impl Attributes {
 
 		loop {
 			let Some((line, token)) = tokenstream.0.pop_front() else {
-				return Err(WebCatError::EarlyEof(Token::CloseBrace, current_line).into());
+				return Err(WebCatError::EarlyEof(current_line, Token::CloseBrace).into());
 			};
 			current_line = line;
 
@@ -122,27 +122,27 @@ impl Attributes {
 						Some((_, Token::Colon)) => (),
 
 						Some((line, token)) => {
-							return Err(WebCatError::UnexpectedAttr(token, line).into());
+							return Err(WebCatError::UnexpectedAttr(line, token).into());
 						}
 
 						_ => {
-							return Err(WebCatError::EarlyEof(Token::Colon, line).into());
+							return Err(WebCatError::EarlyEof(line, Token::Colon).into());
 						}
 					}
 					let val = match tokenstream.0.pop_front() {
 						Some((_, Token::Stringliteral(val))) => val,
 
 						Some((line, token)) => {
-							return Err(WebCatError::UnexpectedAttr(token, line).into());
+							return Err(WebCatError::UnexpectedAttr(line, token).into());
 						}
 
 						_ => {
 							return Err(WebCatError::EarlyEof(
+								line,
 								Token::Stringliteral(StringLiteral {
 									quotes: '"',
 									content: "".into(),
 								}),
-								line,
 							)
 							.into());
 						}
@@ -152,7 +152,7 @@ impl Attributes {
 				}
 
 				other => {
-					return Err(WebCatError::UnexpectedAttr(other, line).into());
+					return Err(WebCatError::UnexpectedAttr(line, other).into());
 				}
 			}
 		}

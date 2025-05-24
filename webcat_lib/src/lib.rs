@@ -13,9 +13,7 @@
 //! ]
 //!
 //! :body[
-//! 	:p[
-//! 		Hello, World!
-//! 	]
+//! 	:p[Hello, World!]
 //! ]
 //! "
 //! .to_string();

@@ -13,7 +13,7 @@ fn main() -> ExitCode {
 	match run() {
 		Ok(_) => ExitCode::SUCCESS,
 		Err(e) => {
-			eprintln!("{ERR}Error{DEFAULT}: {e}");
+			eprintln!("\n{ERR}Error{DEFAULT}: {e}");
 			ExitCode::FAILURE
 		}
 	}
@@ -23,7 +23,7 @@ fn run() -> anyhow::Result<()> {
 	let args = args();
 
 	let Some(file) = args.try_get_one::<PathBuf>("file")? else {
-		return Err(anyhow::anyhow!("No file provided"));
+		return Err(anyhow::anyhow!("no file provided"));
 	};
 
 	let str = std::fs::read_to_string(file)?;

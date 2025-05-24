@@ -85,7 +85,7 @@ impl TokenStream {
 
 			// Checks for one of the operators/keywords is present
 			if let Some(token) = rules(&mut input) {
-				let line = current.0.clone();
+				let line = current.0;
 				let token = replace(&mut current, (line, token));
 				tokenstream.push(token);
 				continue;

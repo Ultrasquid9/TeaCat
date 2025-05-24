@@ -13,9 +13,7 @@ let webcat_str = "
 ]
 
 :body[
-	:p[
-		Hello, World!
-	]
+	:p[Hello, World!]
 ]
 "
 .to_string();
