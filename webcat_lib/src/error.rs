@@ -11,11 +11,12 @@ use lines::Lines;
 pub mod lines;
 
 const VERT: char = '│';
-const VERT_DASH: char = '┊';
+const VERT_DASH: char = '┆';
 
 const HELP: Style = colorstyle(AnsiColor::Magenta);
 const DARK: Style = colorstyle(AnsiColor::BrightBlack);
 const DEFAULT: Style = colorstyle(AnsiColor::White);
+const BOLD: Style = Style::new().bold();
 
 #[derive(Debug, Clone)]
 pub enum WebCatError {
@@ -62,10 +63,13 @@ impl WebCatError {
 	}
 
 	pub fn err_fancy(&self, webcat_str: impl Into<String>) -> String {
-		let help = format!("{DARK}    ╰─▶ {HELP}help: {}{DEFAULT}", self.help_msg());
+		let help = format!(
+			"{DARK}    ╰─▶ {HELP}{BOLD}help: {}{BOLD:#}{DEFAULT}",
+			self.help_msg()
+		);
 		let lines = Lines::new(self.line_num(), webcat_str);
 
-		format!("{self}\n\n{lines}{DARK}    {VERT_DASH}\n{help}\n")
+		format!("{BOLD}{self}{BOLD:#}\n\n{lines}{DARK}    {VERT_DASH}\n{help}\n")
 	}
 }
 

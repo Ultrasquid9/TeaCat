@@ -8,12 +8,13 @@ use webcat_lib::prelude::*;
 
 const ERR: Style = colorstyle(AnsiColor::Red);
 const DEFAULT: Style = colorstyle(AnsiColor::White);
+const BOLD: Style = Style::new().bold();
 
 fn main() -> ExitCode {
 	match run() {
 		Ok(_) => ExitCode::SUCCESS,
 		Err(e) => {
-			eprintln!("\n{ERR}Error{DEFAULT}: {e}");
+			eprintln!("\n{BOLD}{ERR}Error{DEFAULT}: {e}{BOLD:#}");
 			ExitCode::FAILURE
 		}
 	}
