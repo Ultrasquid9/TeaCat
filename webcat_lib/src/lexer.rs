@@ -12,6 +12,8 @@ const QUOTES: &[char] = &['\'', '"'];
 static WHITESPACE: LazyLock<Regex> =
 	LazyLock::new(|| regex::Regex::new("\\s+").expect("Regex should compile"));
 
+type Rules<T> = &'static [(&'static str, T)];
+
 /// A list of [Tokens](Token) built from a WebCat string.
 #[derive(PartialEq, Eq, Debug)]
 pub struct TokenStream(pub VecDeque<(usize, Token)>);
@@ -21,6 +23,7 @@ pub struct TokenStream(pub VecDeque<(usize, Token)>);
 pub enum Token {
 	Ident(String),
 	Text(String),
+	Escape(Escape),
 	Stringliteral(StringLiteral),
 
 	OpenBracket,
@@ -32,6 +35,17 @@ pub enum Token {
 	Colon,
 	SemiColon,
 	Andpersand,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum Escape {
+	/// \n
+	Newline,
+	/// \r
+	CarriageReturn,
+	/// \t
+	Tab,
+	// TODO: Unicode character escape
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -49,6 +63,14 @@ impl TokenStream {
 
 		let mut escaped = false;
 
+		macro_rules! token_switcheroo {
+			($t:expr) => {
+				let current = &mut current;
+				let token = replace(current, (current.0, $t));
+				tokenstream.push(token);
+			};
+		}
+
 		while !input.is_empty() {
 			if input.starts_with("\n") {
 				current.0 += 1;
@@ -57,7 +79,11 @@ impl TokenStream {
 			// Handling the backslash escape
 			// TODO: \n, \t, etc
 			if escaped {
-				tokenstream.push_current_ch(&mut input, &mut current);
+				if let Some(esc) = start_of_string(&mut input, Escape::RULES) {
+					token_switcheroo!(Token::Escape(esc));
+				} else {
+					tokenstream.push_current_ch(&mut input, &mut current);
+				}
 				escaped = false;
 				continue;
 			}
@@ -84,10 +110,8 @@ impl TokenStream {
 			}
 
 			// Checks for one of the operators/keywords is present
-			if let Some(token) = rules(&mut input) {
-				let line = current.0;
-				let token = replace(&mut current, (line, token));
-				tokenstream.push(token);
+			if let Some(token) = start_of_string(&mut input, Token::RULES) {
+				token_switcheroo!(token);
 				continue;
 			}
 
@@ -186,6 +210,17 @@ impl From<VecDeque<Token>> for TokenStream {
 }
 
 impl Token {
+	pub const RULES: Rules<Self> = &[
+		(":=", Token::Walrus),
+		(":", Token::Colon),
+		(";", Token::SemiColon),
+		("&", Token::Andpersand),
+		("[", Token::OpenBracket),
+		("]", Token::CloseBracket),
+		("{", Token::OpenBrace),
+		("}", Token::CloseBrace),
+	];
+
 	fn empty() -> Self {
 		Self::Text("".into())
 	}
@@ -220,6 +255,7 @@ impl Display for Token {
 				&out
 			}
 			Self::Text(str) | Self::Ident(str) => str,
+			Self::Escape(e) => return e.fmt(f),
 			Self::Andpersand => "&",
 			Self::CloseBrace => "}",
 			Self::CloseBracket => "]",
@@ -228,6 +264,24 @@ impl Display for Token {
 			Self::OpenBracket => "[",
 			Self::SemiColon => ";",
 			Self::Walrus => ":=",
+		})
+	}
+}
+
+impl Escape {
+	pub const RULES: Rules<Self> = &[
+		("r", Self::CarriageReturn),
+		("n", Self::Newline),
+		("t", Self::Tab),
+	];
+}
+
+impl Display for Escape {
+	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+		f.write_str(match self {
+			Self::CarriageReturn => "\r",
+			Self::Newline => "\n",
+			Self::Tab => "\t",
 		})
 	}
 }
@@ -254,22 +308,13 @@ impl From<&str> for StringLiteral {
 	}
 }
 
-fn rules(input: &mut String) -> Option<Token> {
-	let rules = [
-		("[", Token::OpenBracket),
-		("]", Token::CloseBracket),
-		("{", Token::OpenBrace),
-		("}", Token::CloseBrace),
-		(":=", Token::Walrus),
-		(":", Token::Colon),
-		(";", Token::SemiColon),
-		("&", Token::Andpersand),
-	];
-
-	for (key, token) in rules {
+/// Checks each "rule" to see if the string starts with it. If it does, remove the
+/// matched characters and return the item associated with the rule.
+pub fn start_of_string<T: Clone>(input: &mut String, rules: Rules<T>) -> Option<T> {
+	for (key, val) in rules {
 		if input.starts_with(key) {
 			*input = input.replacen(key, "", 1);
-			return Some(token);
+			return Some(val.clone());
 		}
 	}
 
@@ -306,9 +351,12 @@ mod tests {
 
 	#[test]
 	fn rule() {
-		assert_eq!(rules(&mut "nothing".into()), None);
-		assert_eq!(rules(&mut ":=".into()), Some(Token::Walrus));
-		assert_eq!(rules(&mut "ab := cd".into()), None);
+		assert_eq!(start_of_string(&mut "nothing".into(), Token::RULES), None);
+		assert_eq!(
+			start_of_string(&mut ":=".into(), Token::RULES),
+			Some(Token::Walrus)
+		);
+		assert_eq!(start_of_string(&mut "ab := cd".into(), Token::RULES), None);
 	}
 
 	#[test]
