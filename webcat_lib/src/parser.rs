@@ -1,4 +1,9 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+	collections::{HashMap, VecDeque},
+	vec,
+};
+
+use anyhow::Ok;
 
 use crate::{
 	error::WebCatError,
@@ -7,28 +12,37 @@ use crate::{
 };
 
 /// A [TokenStream] that has been evaluated into a useable structure.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Ast(pub VecDeque<AstNode>);
 
 /// A single node within an [Ast].
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AstNode {
 	Text(String),
 	Tag(Tag),
 	Var(Var),
 	AccessVar(usize, String),
+	Macr(Macr),
+	AccessMacr(usize, Vec<Var>, String),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Tag {
 	pub name: String,
 	pub attributes: Attributes,
 	pub contents: Ast,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Var {
 	pub name: String,
+	pub contents: Ast,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Macr {
+	pub name: String,
+	pub args: Vec<String>,
 	pub contents: Ast,
 }
 
@@ -63,6 +77,8 @@ impl Ast {
 			nodes.push(match token {
 				Token::Andpersand => var(tokenstream)?,
 				Token::Colon => tag(tokenstream)?,
+				Token::Macr => macr(tokenstream)?,
+				Token::At => access_macr(tokenstream)?,
 
 				// The remaining tokens are either text themselves or only useful if
 				// explicitly required by another, so they can be safely converted
@@ -165,6 +181,83 @@ impl From<HashMap<String, StringLiteral>> for Attributes {
 	fn from(hashmap: HashMap<String, StringLiteral>) -> Self {
 		Self(hashmap)
 	}
+}
+
+fn macr(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
+	if !matches!(tokenstream.0.pop_front(), Some((_, Token::At))) {
+		todo!("error handling")
+	}
+
+	let Some((line, Token::Ident(name))) = tokenstream.0.pop_front() else {
+		todo!("error handling")
+	};
+
+	if !matches!(tokenstream.0.pop_front(), Some((_, Token::OpenBrace))) {
+		todo!("error handling")
+	}
+
+	let mut macr = Macr {
+		name,
+		args: vec![],
+		contents: Ast(vecdeque![]),
+	};
+
+	loop {
+		let Some((_line, token)) = tokenstream.0.pop_front() else {
+			return Err(WebCatError::EarlyEof(line, Token::CloseBrace).into());
+		};
+
+		match token {
+			Token::CloseBrace => break,
+			Token::Andpersand => {
+				let Some((_, Token::Ident(name))) = tokenstream.0.pop_front() else {
+					todo!("error handling")
+				};
+				macr.args.push(name);
+			}
+
+			x => todo!("error handling, {x}"),
+		}
+	}
+
+	if !matches!(tokenstream.0.pop_front(), Some((_, Token::OpenBracket))) {
+		todo!("error handling")
+	}
+
+	macr.contents = Ast::parse_until(tokenstream, Some(Token::CloseBracket))?;
+	Ok(AstNode::Macr(macr))
+}
+
+fn access_macr(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
+	let Some((line, Token::Ident(name))) = tokenstream.0.pop_front() else {
+		todo!("error handling")
+	};
+
+	if !matches!(tokenstream.0.pop_front(), Some((_, Token::OpenBracket))) {
+		todo!("error handling")
+	}
+
+	let mut vars = vec![];
+
+	loop {
+		let Some((_line, token)) = tokenstream.0.pop_front() else {
+			todo!("error handling")
+		};
+
+		match token {
+			Token::CloseBracket => break,
+			Token::Andpersand => {
+				let AstNode::Var(var) = var(tokenstream)? else {
+					todo!("error handling")
+				};
+
+				vars.push(var);
+			}
+			_ => todo!("error handling"),
+		}
+	}
+
+	Ok(AstNode::AccessMacr(line, vars, name))
 }
 
 fn var(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {

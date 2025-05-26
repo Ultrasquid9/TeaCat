@@ -31,10 +31,12 @@ pub enum Token {
 	OpenBrace,
 	CloseBrace,
 
+	Macr,
 	Walrus,
 	Colon,
 	SemiColon,
 	Andpersand,
+	At,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -211,14 +213,17 @@ impl From<VecDeque<Token>> for TokenStream {
 
 impl Token {
 	pub const RULES: Rules<Self> = &[
-		(":=", Token::Walrus),
-		(":", Token::Colon),
-		(";", Token::SemiColon),
-		("&", Token::Andpersand),
 		("[", Token::OpenBracket),
 		("]", Token::CloseBracket),
 		("{", Token::OpenBrace),
 		("}", Token::CloseBrace),
+		("macr", Token::Macr),
+		(":= ", Token::Walrus),
+		(":=", Token::Walrus),
+		(":", Token::Colon),
+		(";", Token::SemiColon),
+		("&", Token::Andpersand),
+		("@", Token::At),
 	];
 
 	fn empty() -> Self {
@@ -241,7 +246,7 @@ impl Token {
 	}
 
 	fn creates_ident(&self) -> bool {
-		matches!(self, Self::Colon | Self::Andpersand)
+		matches!(self, Self::Colon | Self::Andpersand | Self::At)
 	}
 }
 
@@ -264,6 +269,8 @@ impl Display for Token {
 			Self::OpenBracket => "[",
 			Self::SemiColon => ";",
 			Self::Walrus => ":=",
+			Self::At => "@",
+			Self::Macr => " macr ",
 		})
 	}
 }
@@ -341,7 +348,7 @@ mod tests {
 				Token::Andpersand,
 				Token::Ident("x".into()),
 				Token::Walrus,
-				Token::Text(" X".into()),
+				Token::Text("X".into()),
 				Token::SemiColon,
 				Token::Andpersand,
 				Token::Ident("x".into()),
@@ -447,6 +454,29 @@ mod tests {
 		assert_eq!(
 			TokenStream::lex("a\ta").tokens(),
 			vecdeque![Token::Text("a a".into())]
+		);
+	}
+
+	#[test]
+	fn macros() {
+		assert_eq!(
+			TokenStream::lex("@person[&name := Juni; &pronouns := she/her;]").tokens(),
+			vecdeque![
+				Token::At,
+				Token::Ident("person".into()),
+				Token::OpenBracket,
+				Token::Andpersand,
+				Token::Ident("name".into()),
+				Token::Walrus,
+				Token::Text("Juni".into()),
+				Token::SemiColon,
+				Token::Andpersand,
+				Token::Ident("pronouns".into()),
+				Token::Walrus,
+				Token::Text("she/her".into()),
+				Token::SemiColon,
+				Token::CloseBracket,
+			]
 		);
 	}
 

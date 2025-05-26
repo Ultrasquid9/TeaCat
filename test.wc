@@ -11,8 +11,11 @@
 # Macros
 #
 # Accept variables as arguments, allowing for complex repeated structures.
-# Generally quite simple, not turing-complete.
-# Syntax WIP.
+macr @person{&name &pronouns}[
+	&c := Hello;
+
+	&c my name is &name and my pronouns are &pronouns 
+]
 
 :head[
 	# An & symbol allows you to access a variable
@@ -23,6 +26,14 @@
 	:p[
 		# A backslash escapes the following character
 		\&title # will print "&title" in the generated HTML
+
+		:br[]
+
+		# Calling a macro
+		@person[
+			&name := Juni;
+			&pronouns := she/her;
+		]
 
 		:br[]
 

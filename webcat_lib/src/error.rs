@@ -20,7 +20,8 @@ const BOLD: Style = Style::new().bold();
 
 #[derive(Debug, Clone)]
 pub enum WebCatError {
-	UndefinedVarError(usize, String),
+	UndefinedVar(usize, String),
+	UndefinedMacr(usize, String),
 	UnexpectedAttr(usize, Token),
 	EarlyEof(usize, Token),
 }
@@ -28,7 +29,8 @@ pub enum WebCatError {
 impl Display for WebCatError {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		f.write_str(&match self {
-			Self::UndefinedVarError(_, var) => format!("variable '&{var}' undefined"),
+			Self::UndefinedVar(_, var) => format!("variable '&{var}' undefined"),
+			Self::UndefinedMacr(_, macr) => format!("macro '&{macr}' undefined"),
 			Self::UnexpectedAttr(_, token) => {
 				format!("unexpected token in attributes: '{token}'")
 			}
@@ -43,15 +45,19 @@ impl WebCatError {
 	fn line_num(&self) -> usize {
 		match self {
 			Self::EarlyEof(line, _)
-			| Self::UndefinedVarError(line, _)
+			| Self::UndefinedVar(line, _)
+			| Self::UndefinedMacr(line, _)
 			| Self::UnexpectedAttr(line, _) => *line,
 		}
 	}
 
 	pub fn help_msg(&self) -> String {
 		match self {
-			Self::UndefinedVarError(_, var) => {
+			Self::UndefinedVar(_, var) => {
 				format!("to insert an '&' directly, use a backslash: '\\&{var}'")
+			}
+			Self::UndefinedMacr(_, macr) => {
+				format!("to insert an '@' directly, use a backslash: '\\@{macr}'")
 			}
 			Self::UnexpectedAttr(_, token) => {
 				format!("try surrounding the token with quotation marks: '\"{token}\"'")

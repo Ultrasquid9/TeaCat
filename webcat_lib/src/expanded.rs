@@ -25,38 +25,77 @@ pub struct ExpandedTag {
 }
 
 impl ExpandedAst {
-	pub fn expand(ast: Ast, vars: &HashMap<String, ExpandedAst>) -> anyhow::Result<Self> {
-		let mut html = Self(vec![]);
+	pub fn expand(ast: Ast) -> anyhow::Result<Self> {
+		Self::expand_inner(ast, &HashMap::new(), &HashMap::new())
+	}
+
+	fn expand_inner(
+		ast: Ast,
+		vars: &HashMap<String, ExpandedAst>,
+		macrs: &HashMap<String, Ast>,
+	) -> anyhow::Result<Self> {
+		let mut expanded = Self(vec![]);
 		let mut vars = vars.clone();
+		let mut macrs = macrs.clone();
 
 		for node in ast.0 {
 			match node {
 				AstNode::Var(var) => {
-					vars.insert(var.name, ExpandedAst::expand(var.contents, &vars)?);
+					vars.insert(
+						var.name,
+						ExpandedAst::expand_inner(var.contents, &vars, &macrs)?,
+					);
 				}
 				AstNode::AccessVar(line, var) => {
 					let Some(contents) = vars.get(&var) else {
-						return Err(WebCatError::UndefinedVarError(line, var).into());
+						return Err(WebCatError::UndefinedVar(line, var).into());
 					};
-					html.0.append(&mut contents.0.clone());
+					expanded.0.append(&mut contents.0.clone());
 				}
-				AstNode::Tag(tag) => html
-					.0
-					.push(ExpandedNode::Tag(ExpandedTag::from_tag(tag, &vars)?)),
-				AstNode::Text(text) => html.0.push(ExpandedNode::Text(text)),
+
+				AstNode::AccessMacr(_line, args, name) => {
+					let mut macr_vars = HashMap::new();
+
+					for arg in args {
+						macr_vars.insert(
+							arg.name,
+							ExpandedAst::expand_inner(arg.contents, &vars, &macrs)?,
+						);
+					}
+
+					let Some(macr) = macrs.get(&name) else {
+						todo!("error handling")
+					};
+
+					let mut expanded_macr =
+						ExpandedAst::expand_inner(macr.clone(), &macr_vars, &macrs)?;
+					expanded.0.append(&mut expanded_macr.0);
+				}
+				AstNode::Macr(macr) => {
+					macrs.insert(macr.name, macr.contents);
+				}
+
+				AstNode::Tag(tag) => expanded.0.push(ExpandedNode::Tag(ExpandedTag::from_tag(
+					tag, &vars, &macrs,
+				)?)),
+				AstNode::Text(text) => expanded.0.push(ExpandedNode::Text(text)),
 			}
 		}
 
-		Ok(html)
+		Ok(expanded)
 	}
 }
 
 impl ExpandedTag {
-	fn from_tag(tag: Tag, vars: &HashMap<String, ExpandedAst>) -> anyhow::Result<Self> {
+	fn from_tag(
+		tag: Tag,
+		vars: &HashMap<String, ExpandedAst>,
+		macrs: &HashMap<String, Ast>,
+	) -> anyhow::Result<Self> {
 		Ok(Self {
 			name: tag.name,
 			attributes: tag.attributes,
-			contents: ExpandedAst::expand(tag.contents, vars)?,
+			contents: ExpandedAst::expand_inner(tag.contents, vars, macrs)?,
 		})
 	}
 }

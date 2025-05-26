@@ -3,7 +3,6 @@
 //!
 //! ```rust
 //! use webcat_lib::prelude::*;
-//! use std::collections::HashMap;
 //!
 //! let webcat_str = "
 //! &title := :title[My Webpage];
@@ -20,7 +19,7 @@
 //!
 //! let tokenstream = TokenStream::lex(webcat_str);
 //! let ast = Ast::parse(tokenstream).unwrap();
-//! let expanded = ExpandedAst::expand(ast, &HashMap::new()).unwrap();
+//! let expanded = ExpandedAst::expand(ast).unwrap();
 //! let html = HtmlRenderer::render(expanded);
 //!
 //! assert_eq!(
@@ -30,8 +29,6 @@
 //! ```
 
 #![allow(clippy::tabs_in_doc_comments)]
-
-use std::collections::HashMap;
 
 use prelude::*;
 
@@ -57,7 +54,7 @@ pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(
 ) -> anyhow::Result<Out> {
 	let tokenstream = TokenStream::lex(webcat_string);
 	let ast = Ast::parse(tokenstream)?;
-	let expanded = ExpandedAst::expand(ast, &HashMap::new())?;
+	let expanded = ExpandedAst::expand(ast)?;
 	Ok(Rend::render(expanded))
 }
 
