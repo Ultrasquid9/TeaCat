@@ -1,8 +1,9 @@
 #![allow(clippy::tabs_in_doc_comments)]
 
-use std::{path::PathBuf, process::ExitCode};
+use std::{fs, path::PathBuf, process::ExitCode};
 
 use anstyle::{AnsiColor, Color, Style};
+use anyhow::{anyhow, Result as CatResult};
 use clap::{ArgMatches, arg, value_parser};
 use webcat_lib::prelude::*;
 
@@ -20,30 +21,40 @@ fn main() -> ExitCode {
 	}
 }
 
-fn run() -> anyhow::Result<()> {
+fn run() -> CatResult<()> {
 	let args = args();
 
 	let Some(file) = args.try_get_one::<PathBuf>("file")? else {
-		return Err(anyhow::anyhow!("no file provided"));
+		return Err(anyhow!("no file provided"));
 	};
 
-	let str = std::fs::read_to_string(file)?;
+	let str = fs::read_to_string(file)?;
 	let html = eval(str)?;
 
-	println!("{html}");
+	if let Some(file) = args.try_get_one::<PathBuf>("out")? {
+		fs::write(file, html)?;
+	} else {
+		println!("{html}");
+	}
+
 	Ok(())
 }
 
 fn args() -> ArgMatches {
 	clap::command!()
 		.arg(arg!([file] "The file to read").value_parser(value_parser!(PathBuf)))
+		.arg(
+			arg!(-o --out <FILE> "The file to output to")
+				.required(false)
+				.value_parser(value_parser!(PathBuf)),
+		)
 		.get_matches()
 }
 
-fn eval(str: String) -> anyhow::Result<String> {
+fn eval(str: String) -> CatResult<String> {
 	match eval_webcat_string::<HtmlRenderer, _>(&str) {
 		Err(err) => Err(if let Some(fancyerr) = err.downcast_ref::<WebCatError>() {
-			anyhow::anyhow!(format!("{}", fancyerr.err_fancy(str)))
+			anyhow!(fancyerr.err_fancy(str))
 		} else {
 			err
 		}),
