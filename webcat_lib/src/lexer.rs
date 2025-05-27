@@ -63,6 +63,7 @@ impl TokenStream {
 		let mut tokenstream = Self::default();
 		let mut current = (0, Token::empty());
 
+		let mut comment_nesting = 0usize;
 		let mut escaped = false;
 
 		macro_rules! token_switcheroo {
@@ -95,7 +96,21 @@ impl TokenStream {
 				continue;
 			}
 
-			// Handling comments
+			// Multi-line comments
+			if input.starts_with("<#") {
+				input.drain(..2);
+				comment_nesting += 1;
+				continue;
+			} else if input.starts_with("#>") {
+				input.drain(..2);
+				comment_nesting -= 1;
+				continue;
+			} else if comment_nesting > 0 {
+				input.remove(0);
+				continue;
+			}
+
+			// Single-line comments
 			if input.starts_with("#") {
 				if let Some((_, str)) = input.split_once("\n") {
 					input = "\n".to_string() + str;

@@ -35,6 +35,6 @@ Features:
 - [x] Attributes
 - [x] Variables
 - [x] Comments
-- [ ] Macros
+- [x] Macros
 - [ ] Inline CSS/JS
 - [ ] Syntax Highlighting 
