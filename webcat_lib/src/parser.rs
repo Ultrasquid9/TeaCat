@@ -249,7 +249,7 @@ fn var(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 }
 
 fn tag(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
-	let (_, name) = tokenstream.current_ident()?;
+	let (line, name) = tokenstream.current_ident()?;
 
 	let mut attributes = Attributes::new();
 	if let Some((_, Token::OpenBrace)) = tokenstream.0.front() {
@@ -257,11 +257,18 @@ fn tag(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 		attributes = Attributes::parse(tokenstream)?;
 	}
 
-	tokenstream.expect(Token::OpenBracket)?;
+	let contents = match tokenstream.pop() {
+		Some((_, Token::SemiColon)) => Ast::empty(),
+		Some((_, Token::OpenBracket)) => Ast::parse_until(tokenstream, Some(Token::CloseBracket))?,
+
+		Some((line, token)) => return Err(WebCatError::UnexpectedToken(line, token).into()),
+		None => return Err(WebCatError::EarlyEof(line, Token::SemiColon).into()),
+	};
+
 	Ok(AstNode::Tag(Tag {
 		name,
 		attributes,
-		contents: Ast::parse_until(tokenstream, Some(Token::CloseBracket))?,
+		contents,
 	}))
 }
 

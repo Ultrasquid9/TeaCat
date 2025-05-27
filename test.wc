@@ -27,7 +27,7 @@ macr @person{&name &pronouns}[
 		# A backslash escapes the following character
 		\&title # will print "&title" in the generated HTML
 
-		:br[]
+		:br;
 
 		&name := Juni;
 
@@ -37,7 +37,7 @@ macr @person{&name &pronouns}[
 			&pronouns := she/her;
 		]
 
-		:br[]
+		:br;
 
 		&link := "https://www.w3schools.com/images/w3schools_green.jpg";
 
@@ -45,6 +45,6 @@ macr @person{&name &pronouns}[
 		:img{
 			src:"https://www.w3schools.com/images/w3schools_green.jpg"
 			alt:"Test Image"
-		} []
+		};
 	]
 ]

@@ -3,7 +3,7 @@
 use std::{fs, path::PathBuf, process::ExitCode};
 
 use anstyle::{AnsiColor, Color, Style};
-use anyhow::{anyhow, Result as CatResult};
+use anyhow::{Result as CatResult, anyhow};
 use clap::{ArgMatches, arg, value_parser};
 use webcat_lib::prelude::*;
 
