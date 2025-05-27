@@ -184,9 +184,8 @@ impl TokenStream {
 			}
 		}
 
-		self.0.retain(
-			|(_, token)| !matches!((*token).clone().string_mut(), Some(str) if str.trim().is_empty()),
-		);
+		self.0
+			.retain(|(_, token)| !matches!(token.string_ref(), Some(str) if str.trim().is_empty()));
 	}
 
 	/// Checks to see if the [TokenStream] begins with an ident. If it does, return the name of the
@@ -269,6 +268,15 @@ impl Token {
 
 	fn empty() -> Self {
 		Self::Text("".into())
+	}
+
+	fn string_ref(&self) -> Option<&str> {
+		Some(match self {
+			Self::Text(str) | Self::Ident(str) => str,
+			Self::Stringliteral(strlit) => &strlit.content,
+
+			_ => return None,
+		})
 	}
 
 	fn string_mut(&mut self) -> Option<&mut String> {
@@ -362,7 +370,7 @@ impl From<&str> for StringLiteral {
 pub fn start_of_string<T: Clone>(input: &mut String, rules: Rules<T>) -> Option<T> {
 	for (key, val) in rules {
 		if input.starts_with(key) {
-			*input = input.replacen(key, "", 1);
+			input.drain(..key.len());
 			return Some(val.clone());
 		}
 	}

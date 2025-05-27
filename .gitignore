@@ -1,3 +1,8 @@
 /target
 
 index.html
+
+# Flamegraphs
+flamegraph.svg
+perf.data
+perf.data.old
