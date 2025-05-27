@@ -23,6 +23,8 @@ pub enum WebCatError {
 	UndefinedVar(usize, String),
 	UndefinedMacr(usize, String),
 	UnexpectedAttr(usize, Token),
+	UnexpectedToken(usize, Token),
+	ExpectedIdent(usize, Token),
 	EarlyEof(usize, Token),
 }
 
@@ -32,8 +34,12 @@ impl Display for WebCatError {
 			Self::UndefinedVar(_, var) => format!("variable '&{var}' undefined"),
 			Self::UndefinedMacr(_, macr) => format!("macro '&{macr}' undefined"),
 			Self::UnexpectedAttr(_, token) => {
-				format!("unexpected token in attributes: '{token}'")
+				format!("unexpected input in attributes: '{token}'")
 			}
+			Self::UnexpectedToken(_, token) => {
+				format!("unexpected token: '{token}'")
+			}
+			Self::ExpectedIdent(_, token) => format!("expected identifier, found '{token}'"),
 			Self::EarlyEof(_, token) => format!("early end of file while seeking token '{token}'"),
 		})
 	}
@@ -47,7 +53,9 @@ impl WebCatError {
 			Self::EarlyEof(line, _)
 			| Self::UndefinedVar(line, _)
 			| Self::UndefinedMacr(line, _)
-			| Self::UnexpectedAttr(line, _) => *line,
+			| Self::UnexpectedToken(line, _)
+			| Self::UnexpectedAttr(line, _)
+			| Self::ExpectedIdent(line, _) => *line,
 		}
 	}
 
@@ -61,6 +69,12 @@ impl WebCatError {
 			}
 			Self::UnexpectedAttr(_, token) => {
 				format!("try surrounding the token with quotation marks: '\"{token}\"'")
+			}
+			Self::UnexpectedToken(_, token) => format!("remove the '{token}'"),
+			Self::ExpectedIdent(_, token) => {
+				format!(
+					"if you intended '{token}' to be an identifier, be sure to remove or escape whitespace"
+				)
 			}
 			Self::EarlyEof(_, token) => {
 				format!("add the expected token to the end of the file: '{token}'")

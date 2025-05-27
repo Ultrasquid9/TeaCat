@@ -5,7 +5,7 @@ use std::sync::LazyLock;
 
 use regex::Regex;
 
-use crate::vecdeque;
+use crate::{prelude::*, vecdeque};
 
 const QUOTES: &[char] = &['\'', '"'];
 
@@ -143,7 +143,7 @@ impl TokenStream {
 
 		// Handling String Literals
 		if QUOTES.contains(&ch) && !matches!(current, (_, Token::Stringliteral(_))) {
-			token_switcheroo!(Token::Stringliteral(StringLiteral::new(ch)));
+			token_switcheroo!(Token::Stringliteral(StringLiteral::empty(ch)));
 			return;
 		}
 		if matches!(current, (_, Token::Stringliteral(str)) if str.quotes == ch) {
@@ -189,13 +189,54 @@ impl TokenStream {
 		);
 	}
 
+	/// Checks to see if the [TokenStream] begins with an ident. If it does, return the name of the
+	/// ident and the line number. Otherwise, return a relevant [Error](WebCatError).
+	pub(crate) fn current_ident(&mut self) -> CatResult<(usize, String)> {
+		match self.pop() {
+			Some((line, Token::Ident(name))) => Ok((line, name)),
+			Some((line, token)) => Err(WebCatError::ExpectedIdent(line, token).into()),
+			None => Err(WebCatError::EarlyEof(0, Token::Ident("ident".into())).into()),
+		}
+	}
+
+	/// Checks to see if the [TokenStream] begins with the provided [Token]. If it does not, returns
+	/// a relevant [Error](WebCatError).
+	pub fn expect(&mut self, token: Token) -> CatResult<()> {
+		match self.pop() {
+			Some((_, t)) if t == token => Ok(()),
+			Some((line, token)) => Err(WebCatError::UnexpectedToken(line, token).into()),
+			_ => Err(WebCatError::EarlyEof(0, token).into()),
+		}
+	}
+
+	/// Checks to see if the [TokenStream] begins with the provided [Token]. If it does not, returns
+	/// the provided [Error](WebCatError).
+	pub fn expect_with_err(
+		&mut self,
+		token: Token,
+		err_some: impl Fn(usize, Token) -> WebCatError,
+		err_none: impl Fn() -> WebCatError,
+	) -> CatResult<()> {
+		match self.pop() {
+			Some((_, t)) if t == token => Ok(()),
+			Some((line, token)) => Err(err_some(line, token).into()),
+			_ => Err(err_none().into()),
+		}
+	}
+
+	/// Gets a [VecDeque] containing only tokens, without any line numbers.
 	pub fn tokens(&self) -> VecDeque<Token> {
 		self.0.iter().map(|(_, token)| token.clone()).collect()
 	}
 
-	/// Inserts a [Token] and a [Line] into the back of a [TokenStream].
+	/// Inserts a [Token] and its line number into the back of a [TokenStream].
 	pub fn push(&mut self, val: (usize, Token)) {
 		self.0.push_back(val);
+	}
+
+	/// Removes and returns the front [Token] and its line number from a [TokenStream] (if present).
+	pub fn pop(&mut self) -> Option<(usize, Token)> {
+		self.0.pop_front()
 	}
 }
 
@@ -294,11 +335,12 @@ impl Display for Escape {
 }
 
 impl StringLiteral {
-	pub fn new(quotes: char) -> Self {
-		Self {
-			quotes,
-			content: String::new(),
-		}
+	pub fn new(quotes: char, content: String) -> Self {
+		Self { quotes, content }
+	}
+
+	pub fn empty(quotes: char) -> Self {
+		Self::new(quotes, String::new())
 	}
 
 	pub fn into_string(&self) -> String {
@@ -421,16 +463,10 @@ mod tests {
 				Token::OpenBrace,
 				Token::Text("x".into()),
 				Token::Colon,
-				Token::Stringliteral(StringLiteral {
-					quotes: '"',
-					content: "1".into()
-				}),
+				Token::Stringliteral(StringLiteral::new('"', "1".into())),
 				Token::Text(" y".into()),
 				Token::Colon,
-				Token::Stringliteral(StringLiteral {
-					quotes: '\'',
-					content: "2".into()
-				}),
+				Token::Stringliteral(StringLiteral::new('\'', "2".into())),
 				Token::CloseBrace,
 				Token::OpenBracket,
 				Token::CloseBracket,
@@ -442,10 +478,10 @@ mod tests {
 	fn strlit() {
 		assert_eq!(
 			TokenStream::lex("'input'").tokens(),
-			vecdeque![Token::Stringliteral(StringLiteral {
-				quotes: '\'',
-				content: "input".into()
-			})]
+			vecdeque![Token::Stringliteral(StringLiteral::new(
+				'\'',
+				"input".into()
+			))]
 		)
 	}
 

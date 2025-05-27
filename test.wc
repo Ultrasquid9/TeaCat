@@ -29,9 +29,11 @@ macr @person{&name &pronouns}[
 
 		:br[]
 
+		&name := Juni;
+
 		# Calling a macro
 		@person[
-			&name := Juni;
+			&name := &name;
 			&pronouns := she/her;
 		]
 

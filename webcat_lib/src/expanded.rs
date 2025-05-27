@@ -7,7 +7,7 @@ use crate::{
 
 pub mod renderer;
 
-/// An [Ast] that has had all variables expanded out and removed, and is ready for rendering.
+/// An [Ast] that has had all variables/macros expanded out and removed, and is ready for rendering.
 #[derive(Debug, Clone)]
 pub struct ExpandedAst(Vec<ExpandedNode>);
 
@@ -25,7 +25,8 @@ pub struct ExpandedTag {
 }
 
 impl ExpandedAst {
-	pub fn expand(ast: Ast) -> anyhow::Result<Self> {
+	/// Expands an [Ast], removing all variables/macros.
+	pub fn expand(ast: Ast) -> CatResult<Self> {
 		Self::expand_inner(ast, &HashMap::new(), &HashMap::new())
 	}
 
@@ -33,7 +34,7 @@ impl ExpandedAst {
 		ast: Ast,
 		vars: &HashMap<String, ExpandedAst>,
 		macrs: &HashMap<String, Ast>,
-	) -> anyhow::Result<Self> {
+	) -> CatResult<Self> {
 		let mut expanded = Self(vec![]);
 		let mut vars = vars.clone();
 		let mut macrs = macrs.clone();
@@ -91,7 +92,7 @@ impl ExpandedTag {
 		tag: Tag,
 		vars: &HashMap<String, ExpandedAst>,
 		macrs: &HashMap<String, Ast>,
-	) -> anyhow::Result<Self> {
+	) -> CatResult<Self> {
 		Ok(Self {
 			name: tag.name,
 			attributes: tag.attributes,

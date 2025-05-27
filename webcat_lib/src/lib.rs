@@ -2,6 +2,7 @@
 //! This crate contains basic tools for working with WebCat files.
 //!
 //! ```rust
+//! # fn hidden() -> anyhow::Result<()> {
 //! use webcat_lib::prelude::*;
 //!
 //! let webcat_str = "
@@ -18,14 +19,17 @@
 //! .to_string();
 //!
 //! let tokenstream = TokenStream::lex(webcat_str);
-//! let ast = Ast::parse(tokenstream).unwrap();
-//! let expanded = ExpandedAst::expand(ast).unwrap();
+//! let ast = Ast::parse(tokenstream)?;
+//! let expanded = ExpandedAst::expand(ast)?;
 //! let html = HtmlRenderer::render(expanded);
 //!
 //! assert_eq!(
 //! 	html,
 //! 	"<!DOCTYPE html><html><head><title>My Webpage</title></head><body><p>Hello, World!</p></body></html>".to_string()
 //! );
+//! # Ok(())
+//! # }
+//! # hidden().unwrap();
 //! ```
 
 #![allow(clippy::tabs_in_doc_comments)]
@@ -51,7 +55,7 @@ pub mod parser;
 /// ```
 pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(
 	webcat_string: impl Into<String>,
-) -> anyhow::Result<Out> {
+) -> CatResult<Out> {
 	let tokenstream = TokenStream::lex(webcat_string);
 	let ast = Ast::parse(tokenstream)?;
 	let expanded = ExpandedAst::expand(ast)?;
@@ -84,4 +88,7 @@ pub mod prelude {
 	};
 	pub use crate::lexer::TokenStream;
 	pub use crate::parser::{Ast, Attributes};
+
+	// Meow
+	pub(crate) use anyhow::Result as CatResult;
 }

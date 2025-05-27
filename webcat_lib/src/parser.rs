@@ -6,8 +6,8 @@ use std::{
 use anyhow::Ok;
 
 use crate::{
-	error::WebCatError,
-	lexer::{StringLiteral, Token, TokenStream},
+	lexer::{StringLiteral, Token},
+	prelude::*,
 	vecdeque,
 };
 
@@ -54,11 +54,11 @@ impl Ast {
 		vecdeque![].into()
 	}
 
-	pub fn parse(mut tokenstream: TokenStream) -> anyhow::Result<Self> {
+	pub fn parse(mut tokenstream: TokenStream) -> CatResult<Self> {
 		Self::parse_until(&mut tokenstream, None)
 	}
 
-	fn parse_until(tokenstream: &mut TokenStream, until: Option<Token>) -> anyhow::Result<Self> {
+	fn parse_until(tokenstream: &mut TokenStream, until: Option<Token>) -> CatResult<Self> {
 		let mut nodes = vec![];
 		let mut current_line = 0;
 
@@ -102,13 +102,13 @@ impl From<VecDeque<AstNode>> for Ast {
 }
 
 impl AstNode {
-	fn text(str: &str) -> Self {
+	pub fn text(str: &str) -> Self {
 		Self::Text(str.into())
 	}
 }
 
 impl Var {
-	fn new(name: String, tokenstream: &mut TokenStream) -> anyhow::Result<Self> {
+	pub fn new(name: String, tokenstream: &mut TokenStream) -> CatResult<Self> {
 		Ok(Self {
 			name,
 			contents: Ast::parse_until(tokenstream, Some(Token::SemiColon))?,
@@ -121,12 +121,12 @@ impl Attributes {
 		Self(HashMap::new())
 	}
 
-	fn parse(tokenstream: &mut TokenStream) -> anyhow::Result<Self> {
+	fn parse(tokenstream: &mut TokenStream) -> CatResult<Self> {
 		let mut attributes = HashMap::new();
 		let mut current_line = 0;
 
 		loop {
-			let Some((line, token)) = tokenstream.0.pop_front() else {
+			let Some((line, token)) = tokenstream.pop() else {
 				return Err(WebCatError::EarlyEof(current_line, Token::CloseBrace).into());
 			};
 			current_line = line;
@@ -134,18 +134,13 @@ impl Attributes {
 			match token {
 				Token::CloseBrace => break,
 				Token::Text(key) => {
-					match tokenstream.0.pop_front() {
-						Some((_, Token::Colon)) => (),
+					tokenstream.expect_with_err(
+						Token::Colon,
+						WebCatError::UnexpectedAttr,
+						|| WebCatError::EarlyEof(line, Token::Colon),
+					)?;
 
-						Some((line, token)) => {
-							return Err(WebCatError::UnexpectedAttr(line, token).into());
-						}
-
-						_ => {
-							return Err(WebCatError::EarlyEof(line, Token::Colon).into());
-						}
-					}
-					let val = match tokenstream.0.pop_front() {
+					let val = match tokenstream.pop() {
 						Some((_, Token::Stringliteral(val))) => val,
 
 						Some((line, token)) => {
@@ -155,10 +150,7 @@ impl Attributes {
 						_ => {
 							return Err(WebCatError::EarlyEof(
 								line,
-								Token::Stringliteral(StringLiteral {
-									quotes: '"',
-									content: "".into(),
-								}),
+								Token::Stringliteral(StringLiteral::empty('"')),
 							)
 							.into());
 						}
@@ -183,18 +175,10 @@ impl From<HashMap<String, StringLiteral>> for Attributes {
 	}
 }
 
-fn macr(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
-	if !matches!(tokenstream.0.pop_front(), Some((_, Token::At))) {
-		todo!("error handling")
-	}
-
-	let Some((line, Token::Ident(name))) = tokenstream.0.pop_front() else {
-		todo!("error handling")
-	};
-
-	if !matches!(tokenstream.0.pop_front(), Some((_, Token::OpenBrace))) {
-		todo!("error handling")
-	}
+fn macr(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
+	tokenstream.expect(Token::At)?;
+	let (line, name) = tokenstream.current_ident()?;
+	tokenstream.expect(Token::OpenBrace)?;
 
 	let mut macr = Macr {
 		name,
@@ -203,45 +187,36 @@ fn macr(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
 	};
 
 	loop {
-		let Some((_line, token)) = tokenstream.0.pop_front() else {
+		let Some((line, token)) = tokenstream.pop() else {
 			return Err(WebCatError::EarlyEof(line, Token::CloseBrace).into());
 		};
 
 		match token {
 			Token::CloseBrace => break,
 			Token::Andpersand => {
-				let Some((_, Token::Ident(name))) = tokenstream.0.pop_front() else {
-					todo!("error handling")
-				};
+				let (_, name) = tokenstream.current_ident()?;
 				macr.args.push(name);
 			}
 
-			x => todo!("error handling, {x}"),
+			other => return Err(WebCatError::UnexpectedToken(line, other).into()),
 		}
 	}
 
-	if !matches!(tokenstream.0.pop_front(), Some((_, Token::OpenBracket))) {
-		todo!("error handling")
-	}
+	tokenstream.expect(Token::OpenBracket)?;
 
 	macr.contents = Ast::parse_until(tokenstream, Some(Token::CloseBracket))?;
 	Ok(AstNode::Macr(macr))
 }
 
-fn access_macr(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
-	let Some((line, Token::Ident(name))) = tokenstream.0.pop_front() else {
-		todo!("error handling")
-	};
-
-	if !matches!(tokenstream.0.pop_front(), Some((_, Token::OpenBracket))) {
-		todo!("error handling")
-	}
+fn access_macr(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
+	let (line, name) = tokenstream.current_ident()?;
+	tokenstream.expect(Token::OpenBracket)?;
 
 	let mut vars = vec![];
 
 	loop {
-		let Some((_line, token)) = tokenstream.0.pop_front() else {
-			todo!("error handling")
+		let Some((line, token)) = tokenstream.pop() else {
+			return Err(WebCatError::EarlyEof(line, Token::CloseBracket).into());
 		};
 
 		match token {
@@ -253,43 +228,36 @@ fn access_macr(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
 
 				vars.push(var);
 			}
-			_ => todo!("error handling"),
+			other => return Err(WebCatError::EarlyEof(line, other).into()),
 		}
 	}
 
 	Ok(AstNode::AccessMacr(line, vars, name))
 }
 
-fn var(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
-	let Some((line, Token::Ident(name))) = tokenstream.0.pop_front() else {
-		return Ok(AstNode::text("&"));
-	};
+fn var(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
+	let (line, name) = tokenstream.current_ident()?;
 
 	// DONT pop from front until we know that the token is one we want
 	Ok(if let Some((_, Token::Walrus)) = tokenstream.0.front() {
 		// Now we know that it's safe to remove
-		tokenstream.0.pop_front();
+		tokenstream.pop();
 		AstNode::Var(Var::new(name, tokenstream)?)
 	} else {
 		AstNode::AccessVar(line, name)
 	})
 }
 
-fn tag(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
-	let Some((_, Token::Ident(name))) = tokenstream.0.pop_front() else {
-		return Ok(AstNode::text(":"));
-	};
+fn tag(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
+	let (_, name) = tokenstream.current_ident()?;
 
 	let mut attributes = Attributes::new();
 	if let Some((_, Token::OpenBrace)) = tokenstream.0.front() {
-		tokenstream.0.pop_front();
+		tokenstream.pop();
 		attributes = Attributes::parse(tokenstream)?;
 	}
 
-	let Some((_, Token::OpenBracket)) = tokenstream.0.pop_front() else {
-		return Ok(AstNode::Text(":".to_string() + &name));
-	};
-
+	tokenstream.expect(Token::OpenBracket)?;
 	Ok(AstNode::Tag(Tag {
 		name,
 		attributes,
@@ -300,7 +268,10 @@ fn tag(tokenstream: &mut TokenStream) -> anyhow::Result<AstNode> {
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::{lexer::TokenStream, vecdeque};
+	use crate::{
+		lexer::{Token, TokenStream},
+		vecdeque,
+	};
 
 	#[test]
 	fn variables() {
