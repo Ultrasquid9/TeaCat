@@ -54,7 +54,7 @@ impl ExpandedAst {
 					expanded.0.append(&mut contents.0.clone());
 				}
 
-				AstNode::AccessMacr(_line, args, name) => {
+				AstNode::AccessMacr(line, args, name) => {
 					let mut macr_vars = HashMap::new();
 
 					for arg in args {
@@ -65,7 +65,7 @@ impl ExpandedAst {
 					}
 
 					let Some(macr) = macrs.get(&name) else {
-						todo!("error handling")
+						return Err(WebCatError::UndefinedMacr(line, name).into());
 					};
 
 					let mut expanded_macr =

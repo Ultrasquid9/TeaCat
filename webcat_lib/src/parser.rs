@@ -222,8 +222,21 @@ fn access_macr(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 		match token {
 			Token::CloseBracket => break,
 			Token::Andpersand => {
-				let AstNode::Var(var) = var(tokenstream)? else {
-					todo!("error handling")
+				let var = match var(tokenstream)? {
+					AstNode::Var(var) => var,
+					AstNode::AccessVar(line, name) => {
+						let var = Var {
+							name: name.clone(),
+							contents: Ast(vecdeque![AstNode::AccessVar(line, name)]),
+						};
+						tokenstream.expect_with_err(
+							Token::SemiColon,
+							WebCatError::ExpectedSemicolon,
+							|| WebCatError::EarlyEof(line, Token::SemiColon),
+						)?;
+						var
+					}
+					_ => unreachable!(),
 				};
 
 				vars.push(var);

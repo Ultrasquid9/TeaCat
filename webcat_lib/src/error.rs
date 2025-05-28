@@ -25,6 +25,7 @@ pub enum WebCatError {
 	UnexpectedAttr(usize, Token),
 	UnexpectedToken(usize, Token),
 	ExpectedIdent(usize, Token),
+	ExpectedSemicolon(usize, Token),
 	EarlyEof(usize, Token),
 }
 
@@ -40,6 +41,7 @@ impl Display for WebCatError {
 				format!("unexpected token: '{token}'")
 			}
 			Self::ExpectedIdent(_, token) => format!("expected identifier, found '{token}'"),
+			Self::ExpectedSemicolon(_, token) => format!("expected ';', found '{token}'"),
 			Self::EarlyEof(_, token) => format!("early end of file while seeking token '{token}'"),
 		})
 	}
@@ -49,14 +51,23 @@ impl Error for WebCatError {}
 
 impl WebCatError {
 	fn line_num(&self) -> usize {
-		match self {
-			Self::EarlyEof(line, _)
-			| Self::UndefinedVar(line, _)
-			| Self::UndefinedMacr(line, _)
-			| Self::UnexpectedToken(line, _)
-			| Self::UnexpectedAttr(line, _)
-			| Self::ExpectedIdent(line, _) => *line,
+		macro_rules! get_line {
+			( $( $name:ident, )* ) => {
+				match self {
+					$( | WebCatError::$name(line, ..) )* => *line,
+				}
+			};
 		}
+
+		get_line!(
+			EarlyEof,
+			UndefinedVar,
+			UndefinedMacr,
+			UnexpectedToken,
+			UnexpectedAttr,
+			ExpectedSemicolon,
+			ExpectedIdent,
+		)
 	}
 
 	pub fn help_msg(&self) -> String {
@@ -76,8 +87,9 @@ impl WebCatError {
 					"if you intended '{token}' to be an identifier, be sure to remove or escape whitespace"
 				)
 			}
+			Self::ExpectedSemicolon(_, token) => format!("Add a semicolon: '..; {token}'"),
 			Self::EarlyEof(_, token) => {
-				format!("add the expected token to the end of the file: '{token}'")
+				format!("add the expected token to the end of the file: '..{token}'")
 			}
 		}
 	}

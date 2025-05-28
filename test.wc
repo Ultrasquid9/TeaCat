@@ -14,9 +14,11 @@
 	My Webpage
 ];
 
-# Macros
-#
-# Accept variables as arguments, allowing for complex repeated structures.
+<#
+ Macros
+
+ Accept variables as arguments, allowing for complex repeated structures.
+#>
 macr @person{&name &pronouns}[
 	&c := Hello;
 
@@ -39,7 +41,7 @@ macr @person{&name &pronouns}[
 
 		# Calling a macro
 		@person[
-			&name := &name;
+			&name; # If the variable already exists, you don't need to reassign it. 
 			&pronouns := she/her;
 		]
 
