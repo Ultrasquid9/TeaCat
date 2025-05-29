@@ -54,9 +54,11 @@ impl<'input> StrWalker<'input> {
 
 	/// Checks if the internal index is at the start of a pattern matching the target [str].
 	pub fn currently_starts_with(&mut self, cmp: &str) -> bool {
-		let end_index = self.index + cmp.len();
+		// Using wrapping_add, then checking the result, seems to be faster than
+		// just using a normal add (likely because it doesn't panic)
+		let end_index = self.index.wrapping_add(cmp.len());
 
-		if end_index > self.to_walk.len() {
+		if end_index > self.to_walk.len() || end_index < self.index {
 			return false;
 		}
 

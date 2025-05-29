@@ -12,7 +12,7 @@ const DEFAULT: Style = colorstyle(AnsiColor::White);
 const BOLD: Style = Style::new().bold();
 
 fn main() -> ExitCode {
-	match run() {
+	match webcat() {
 		Ok(_) => ExitCode::SUCCESS,
 		Err(e) => {
 			eprintln!("\n{BOLD}{ERR}Error{DEFAULT}: {e}{BOLD:#}");
@@ -21,17 +21,28 @@ fn main() -> ExitCode {
 	}
 }
 
-fn run() -> CatResult<()> {
+fn webcat() -> CatResult<()> {
 	let args = args();
 
 	let Some(file) = args.try_get_one::<PathBuf>("file")? else {
 		return Err(anyhow!("no file provided"));
 	};
+	let out = args.try_get_one::<PathBuf>("out")?;
 
+	if args.get_flag("stress_test") {
+		for _ in 0..10000 {
+			run(file, out)?;
+		}
+	}
+
+	run(file, out)
+}
+
+fn run(file: &PathBuf, out: Option<&PathBuf>) -> CatResult<()> {
 	let str = fs::read_to_string(file)?;
 	let html = eval(str)?;
 
-	if let Some(file) = args.try_get_one::<PathBuf>("out")? {
+	if let Some(file) = out {
 		fs::write(file, html)?;
 	} else {
 		println!("{html}");
@@ -47,6 +58,10 @@ fn args() -> ArgMatches {
 			arg!(-o --out <FILE> "The file to output to")
 				.required(false)
 				.value_parser(value_parser!(PathBuf)),
+		)
+		.arg(
+			arg!(--stress_test "Runs the program several times to test performance")
+				.required(false),
 		)
 		.get_matches()
 }

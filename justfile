@@ -14,6 +14,9 @@ test:
 run file=testfile:
 	cargo run -- {{file}}
 
+fg file=testfile:
+	cargo flamegraph --dev -- {{file}} --stress_test
+
 update:
 	git fetch
 	git pull
