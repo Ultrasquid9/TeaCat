@@ -1,5 +1,5 @@
 use std::{
-	collections::{HashMap, VecDeque},
+	collections::{BTreeMap, VecDeque},
 	vec,
 };
 
@@ -47,7 +47,7 @@ pub struct Macr {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub struct Attributes(pub HashMap<String, StringLiteral>);
+pub struct Attributes(pub BTreeMap<String, StringLiteral>);
 
 impl Ast {
 	pub fn empty() -> Self {
@@ -118,11 +118,11 @@ impl Var {
 
 impl Attributes {
 	pub fn new() -> Self {
-		Self(HashMap::new())
+		Self(BTreeMap::new())
 	}
 
 	fn parse(tokenstream: &mut TokenStream) -> CatResult<Self> {
-		let mut attributes = HashMap::new();
+		let mut attributes = BTreeMap::new();
 		let mut current_line = 0;
 
 		loop {
@@ -169,8 +169,8 @@ impl Attributes {
 	}
 }
 
-impl From<HashMap<String, StringLiteral>> for Attributes {
-	fn from(hashmap: HashMap<String, StringLiteral>) -> Self {
+impl From<BTreeMap<String, StringLiteral>> for Attributes {
+	fn from(hashmap: BTreeMap<String, StringLiteral>) -> Self {
 		Self(hashmap)
 	}
 }
@@ -403,7 +403,7 @@ mod tests {
 			ast,
 			vecdeque![AstNode::Tag(Tag {
 				name: "tag".into(),
-				attributes: HashMap::from([
+				attributes: BTreeMap::from([
 					("x".to_string(), "1".into()),
 					("y".to_string(), "2".into()),
 				])

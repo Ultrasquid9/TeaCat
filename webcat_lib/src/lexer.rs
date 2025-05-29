@@ -1,18 +1,12 @@
 use std::collections::VecDeque;
 use std::fmt::{Display, Formatter, Result};
 use std::mem::replace;
-use std::sync::LazyLock;
-
-use regex::Regex;
 
 use crate::{prelude::*, vecdeque};
 
 mod str_walker;
 
 const QUOTES: &[char] = &['\'', '"'];
-
-static WHITESPACE: LazyLock<Regex> =
-	LazyLock::new(|| regex::Regex::new("\\s+").expect("Regex should compile"));
 
 type Rules<T> = &'static [(&'static str, T)];
 
@@ -84,7 +78,7 @@ impl TokenStream {
 			// Handling the backslash escape
 			// TODO: \n, \t, etc
 			if escaped {
-				if let Some(esc) = start_of_walker(&mut walker, Escape::RULES) {
+				if let Some(esc) = walker.try_each(Escape::RULES) {
 					token_switcheroo!(Token::Escape(esc));
 				} else {
 					tokenstream.push_current_ch(&mut walker, &mut current);
@@ -125,7 +119,7 @@ impl TokenStream {
 			}
 
 			// Checks for one of the operators/keywords is present
-			if let Some(token) = start_of_walker(&mut walker, Token::RULES) {
+			if let Some(token) = walker.try_each(Token::RULES) {
 				token_switcheroo!(token);
 				continue;
 			}
@@ -188,19 +182,20 @@ impl TokenStream {
 	/// Converts any sequences of whitespace within [Tokens](Token) into singular spaces, and
 	/// removes any tokens consisting only of whitespace.
 	fn clean_tokens(&mut self) {
-		for (_, token) in &mut self.0 {
-			if let Some(str) = token.string_mut() {
-				*str = WHITESPACE
-					.replace_all(
-						str.trim_matches(|ch: char| ch.is_whitespace() && ch != ' '),
-						" ",
-					)
-					.into();
-			}
-		}
-
 		self.0
 			.retain(|(_, token)| !matches!(token.string_ref(), Some(str) if str.trim().is_empty()));
+
+		for (_, token) in &mut self.0 {
+			if let Some(str) = token.string_mut() {
+				let starts_with = str.starts_with(|ch: char| ch.is_whitespace() && ch != '\n');
+				
+				*str = str.split_whitespace().collect::<Vec<&str>>().join(" ");
+
+				if starts_with {
+					str.insert(0, ' ');
+				}
+			}
+		}
 	}
 
 	/// Checks to see if the [TokenStream] begins with an ident. If it does, return the name of the
@@ -378,19 +373,6 @@ impl From<&str> for StringLiteral {
 			content: value.to_string(),
 		}
 	}
-}
-
-/// Checks each "rule" to see if the walker starts with it. If it does,
-/// increase the walker's index and return the associated item.
-fn start_of_walker<T: Clone>(input: &mut str_walker::StrWalker, rules: Rules<T>) -> Option<T> {
-	for (key, val) in rules {
-		if input.currently_starts_with(key) {
-			input.jump_by(key.len());
-			return Some(val.clone());
-		}
-	}
-
-	None
 }
 
 #[cfg(test)]

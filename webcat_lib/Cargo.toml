@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-regex = "1.11"
 html-escape = "0.2"
 anyhow = "1"
 anstyle = "1"

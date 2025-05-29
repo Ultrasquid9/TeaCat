@@ -1,3 +1,5 @@
+use super::Rules;
+
 /// Traverses a [str] without needing any reallocations.
 pub struct StrWalker<'input> {
 	to_walk: &'input str,
@@ -27,7 +29,7 @@ impl<'input> StrWalker<'input> {
 				return Some(
 					self.to_walk[og_index..self.index]
 						.chars()
-						.nth(0)
+						.next()
 						.expect("Should be a valid char!"),
 				);
 			}
@@ -53,7 +55,7 @@ impl<'input> StrWalker<'input> {
 	}
 
 	/// Checks if the internal index is at the start of a pattern matching the target [str].
-	pub fn currently_starts_with(&mut self, cmp: &str) -> bool {
+	pub fn currently_starts_with(&self, cmp: &str) -> bool {
 		// Using wrapping_add, then checking the result, seems to be faster than
 		// just using a normal add (likely because it doesn't panic)
 		let end_index = self.index.wrapping_add(cmp.len());
@@ -74,5 +76,18 @@ impl<'input> StrWalker<'input> {
 		if !self.to_walk.is_char_boundary(self.index) {
 			panic!("{} is not a valid char boundary", self.index)
 		}
+	}
+
+	/// Checks each "rule" to see if the [StrWalker] starts with it. If it does,
+	/// increase the internal index and return the associated item.
+	pub fn try_each<T: Clone>(&mut self, rules: Rules<T>) -> Option<T> {
+		for (key, val) in rules {
+			if self.currently_starts_with(key) {
+				self.jump_by(key.len());
+				return Some(val.clone());
+			}
+		}
+
+		None
 	}
 }
