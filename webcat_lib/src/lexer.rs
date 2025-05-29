@@ -7,6 +7,8 @@ use regex::Regex;
 
 use crate::{prelude::*, vecdeque};
 
+mod str_walker;
+
 const QUOTES: &[char] = &['\'', '"'];
 
 static WHITESPACE: LazyLock<Regex> =
@@ -57,9 +59,9 @@ pub struct StringLiteral {
 }
 
 impl TokenStream {
-	/// Lexes a [String] into a list of [Tokens](Token).
-	pub fn lex(input: impl Into<String>) -> Self {
-		let mut input = input.into();
+	/// Lexes a [str] into a list of [Tokens](Token).
+	pub fn lex(input: impl AsRef<str>) -> Self {
+		let mut walker = str_walker::StrWalker::new(input.as_ref());
 		let mut tokenstream = Self::default();
 		let mut current = (0, Token::empty());
 
@@ -74,66 +76,62 @@ impl TokenStream {
 			};
 		}
 
-		while !input.is_empty() {
-			if input.starts_with("\n") {
+		while !walker.reached_end() {
+			if walker.currently_starts_with("\n") {
 				current.0 += 1;
 			}
 
 			// Handling the backslash escape
 			// TODO: \n, \t, etc
 			if escaped {
-				if let Some(esc) = start_of_string(&mut input, Escape::RULES) {
+				if let Some(esc) = start_of_walker(&mut walker, Escape::RULES) {
 					token_switcheroo!(Token::Escape(esc));
 				} else {
-					tokenstream.push_current_ch(&mut input, &mut current);
+					tokenstream.push_current_ch(&mut walker, &mut current);
 				}
 				escaped = false;
 				continue;
 			}
-			if input.starts_with("\\") {
-				input.remove(0);
+			if walker.currently_starts_with("\\") {
+				walker.jump_by("\\".len());
 				escaped = true;
 				continue;
 			}
 
 			// Multi-line comments
-			if input.starts_with("<#") {
-				input.drain(..2);
+			if walker.currently_starts_with("<#") {
+				walker.jump_by(2);
 				comment_nesting += 1;
 				continue;
-			} else if input.starts_with("#>") {
-				input.drain(..2);
+			} else if walker.currently_starts_with("#>") {
+				walker.jump_by(2);
 				comment_nesting -= 1;
 				continue;
 			} else if comment_nesting > 0 {
-				input.remove(0);
+				walker.next_char();
 				continue;
 			}
 
 			// Single-line comments
-			if input.starts_with("#") {
-				if let Some((_, str)) = input.split_once("\n") {
-					input = "\n".to_string() + str;
-				} else {
-					input.clear();
-				}
+			if walker.currently_starts_with("#") {
+				walker.jump_to_next("\n");
 				continue;
 			}
 
 			// Handling string literals
 			if matches!(current, (_, Token::Stringliteral(_))) {
-				tokenstream.push_current_ch(&mut input, &mut current);
+				tokenstream.push_current_ch(&mut walker, &mut current);
 				continue;
 			}
 
 			// Checks for one of the operators/keywords is present
-			if let Some(token) = start_of_string(&mut input, Token::RULES) {
+			if let Some(token) = start_of_walker(&mut walker, Token::RULES) {
 				token_switcheroo!(token);
 				continue;
 			}
 
 			// No operators/keywords found, so the current char is inserted into the current token
-			tokenstream.push_current_ch(&mut input, &mut current);
+			tokenstream.push_current_ch(&mut walker, &mut current);
 		}
 
 		// Adding the current token
@@ -146,8 +144,10 @@ impl TokenStream {
 
 	/// Removes the first [char] of the given [String] and inserts it into the
 	/// current [Token] if possible, or creates a new token if not.
-	fn push_current_ch(&mut self, input: &mut String, current: &mut (usize, Token)) {
-		let ch = input.remove(0);
+	fn push_current_ch(&mut self, input: &mut str_walker::StrWalker, current: &mut (usize, Token)) {
+		let ch = input
+			.next_char()
+			.expect("Should not yet have reached the end!");
 
 		macro_rules! token_switcheroo {
 			($t:expr) => {
@@ -380,12 +380,12 @@ impl From<&str> for StringLiteral {
 	}
 }
 
-/// Checks each "rule" to see if the string starts with it. If it does, remove the
-/// matched characters and return the item associated with the rule.
-pub fn start_of_string<T: Clone>(input: &mut String, rules: Rules<T>) -> Option<T> {
+/// Checks each "rule" to see if the walker starts with it. If it does,
+/// increase the walker's index and return the associated item.
+fn start_of_walker<T: Clone>(input: &mut str_walker::StrWalker, rules: Rules<T>) -> Option<T> {
 	for (key, val) in rules {
-		if input.starts_with(key) {
-			input.drain(..key.len());
+		if input.currently_starts_with(key) {
+			input.jump_by(key.len());
 			return Some(val.clone());
 		}
 	}
@@ -419,16 +419,6 @@ mod tests {
 				Token::Ident("x".into()),
 			]
 		);
-	}
-
-	#[test]
-	fn rule() {
-		assert_eq!(start_of_string(&mut "nothing".into(), Token::RULES), None);
-		assert_eq!(
-			start_of_string(&mut ":=".into(), Token::RULES),
-			Some(Token::Walrus)
-		);
-		assert_eq!(start_of_string(&mut "ab := cd".into(), Token::RULES), None);
 	}
 
 	#[test]

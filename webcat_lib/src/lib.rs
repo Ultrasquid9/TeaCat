@@ -54,7 +54,7 @@ pub mod parser;
 /// );
 /// ```
 pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(
-	webcat_string: impl Into<String>,
+	webcat_string: impl AsRef<str>,
 ) -> CatResult<Out> {
 	let tokenstream = TokenStream::lex(webcat_string);
 	let ast = Ast::parse(tokenstream)?;
