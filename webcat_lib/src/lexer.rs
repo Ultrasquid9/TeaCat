@@ -185,14 +185,23 @@ impl TokenStream {
 		self.0
 			.retain(|(_, token)| !matches!(token.string_ref(), Some(str) if str.trim().is_empty()));
 
+		fn whitespace_check(ch: char) -> bool {
+			let ignore = ['\n', '\t'];
+			ch.is_whitespace() && !ignore.contains(&ch)
+		}
+
 		for (_, token) in &mut self.0 {
 			if let Some(str) = token.string_mut() {
-				let starts_with = str.starts_with(|ch: char| ch.is_whitespace() && ch != '\n');
+				let starts_with = str.starts_with(whitespace_check);
+				let ends_with = str.ends_with(whitespace_check);
 
 				*str = str.split_whitespace().collect::<Vec<&str>>().join(" ");
 
 				if starts_with {
 					str.insert(0, ' ');
+				}
+				if ends_with {
+					str.push(' ');
 				}
 			}
 		}

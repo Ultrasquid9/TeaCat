@@ -1,4 +1,5 @@
 testfile := "test.wc"
+targetfile := "index.html"
 
 default: fmt clippy test (run testfile)
 
@@ -16,6 +17,9 @@ run file=testfile:
 
 fg file=testfile:
 	cargo flamegraph --dev -- {{file}} --stress_test
+
+out file=testfile target=targetfile:
+	cargo run -- {{file}} --out {{target}}
 
 update:
 	git fetch
