@@ -54,5 +54,18 @@ macr @person{&name &pronouns}[
 			src:"https://www.w3schools.com/images/w3schools_green.jpg"
 			alt:"Test Image"
 		};
+
+		:ul[
+			# Arrays use curly braces too 
+			{
+				Hello; 
+				World; 
+				this is; 
+				a test of; 
+				arrays in WebCat;
+
+				:h2[Tags can be placed within arrays too];
+			}
+		]
 	]
 ]

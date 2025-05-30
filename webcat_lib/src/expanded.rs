@@ -15,6 +15,7 @@ pub struct ExpandedAst(Vec<ExpandedNode>);
 pub enum ExpandedNode {
 	Text(String),
 	Tag(ExpandedTag),
+	Array(Vec<ExpandedAst>),
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +75,16 @@ impl ExpandedAst {
 				}
 				AstNode::Macr(macr) => {
 					macrs.insert(macr.name, macr.contents);
+				}
+
+				AstNode::Array(array) => {
+					let mut new = vec![];
+
+					for ast in array {
+						new.push(ExpandedAst::expand_inner(ast, &vars, &macrs)?);
+					}
+
+					expanded.0.push(ExpandedNode::Array(new));
 				}
 
 				AstNode::Tag(tag) => expanded.0.push(ExpandedNode::Tag(ExpandedTag::from_tag(

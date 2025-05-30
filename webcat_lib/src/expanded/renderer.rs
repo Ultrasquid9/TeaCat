@@ -9,4 +9,5 @@ pub trait Renderer<Out> {
 	fn render_tag(&mut self, tag: ExpandedTag) -> Out;
 	fn render_text(&mut self, text: String) -> Out;
 	fn render_attributes(&mut self, attributes: Attributes) -> Out;
+	fn render_array(&mut self, array: Vec<ExpandedAst>) -> Out;
 }

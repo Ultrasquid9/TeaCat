@@ -24,6 +24,7 @@ pub enum AstNode {
 	AccessVar(usize, String),
 	Macr(Macr),
 	AccessMacr(usize, Vec<Var>, String),
+	Array(Vec<Ast>),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -77,6 +78,7 @@ impl Ast {
 			nodes.push(match token {
 				Token::Andpersand => var(tokenstream)?,
 				Token::Colon => tag(tokenstream)?,
+				Token::OpenBrace => array(tokenstream)?,
 				Token::Macr => macr(tokenstream)?,
 				Token::At => access_macr(tokenstream)?,
 
@@ -283,6 +285,21 @@ fn tag(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 		attributes,
 		contents,
 	}))
+}
+
+fn array(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
+	let mut array = vec![];
+
+	loop {
+		match tokenstream.0.front() {
+			Some((_, Token::CloseBrace)) => break,
+			Some(_) => array.push(Ast::parse_until(tokenstream, Some(Token::SemiColon))?),
+			None => return Err(WebCatError::EarlyEof(0, Token::SemiColon).into()),
+		}
+	}
+
+	tokenstream.pop();
+	Ok(AstNode::Array(array))
 }
 
 #[cfg(test)]

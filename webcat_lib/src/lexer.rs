@@ -188,7 +188,7 @@ impl TokenStream {
 		for (_, token) in &mut self.0 {
 			if let Some(str) = token.string_mut() {
 				let starts_with = str.starts_with(|ch: char| ch.is_whitespace() && ch != '\n');
-				
+
 				*str = str.split_whitespace().collect::<Vec<&str>>().join(" ");
 
 				if starts_with {

@@ -16,6 +16,7 @@ impl Renderer<String> for HtmlRenderer {
 			rendered.push_str(&match node {
 				ExpandedNode::Tag(tag) => self.render_tag(tag),
 				ExpandedNode::Text(text) => self.render_text(text),
+				ExpandedNode::Array(array) => self.render_array(array),
 			});
 		}
 
@@ -44,5 +45,13 @@ impl Renderer<String> for HtmlRenderer {
 		}
 
 		rendered
+	}
+
+	fn render_array(&mut self, array: Vec<ExpandedAst>) -> String {
+		array
+			.into_iter()
+			.map(|ast| format!("<li>{}</li>", self.render_ast(ast)))
+			.collect::<Vec<String>>()
+			.join("")
 	}
 }
