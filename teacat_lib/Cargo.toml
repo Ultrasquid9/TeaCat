@@ -3,7 +3,7 @@ name = "teacat_lib"
 version = "0.1.0"
 edition = "2024"
 description = "Tools for working with TeaCat files"
-license = "Artistic 2.0"
+license = "Artistic-2.0"
 categories = ["compilers", "parser-implementations"]
 keywords = ["templating", "template", "markup", "html", "language"]
 
