@@ -62,6 +62,46 @@ pub fn eval_teacat_string<Rend: Renderer<Out>, Out>(
 	Ok(Rend::render(expanded))
 }
 
+/// Encodes a string so that it can be safely used in a TeaCat file.
+/// # Examples
+/// ```
+/// use teacat_lib::prelude::*;
+///
+/// let teacat_string = ":head[]";
+///
+/// assert_eq!(
+/// 	encode_str(teacat_string),
+/// 	"\\:head\\[\\]".to_string(),
+/// );
+/// ```
+pub fn encode_str(str: impl Into<String>) -> String {
+	#[rustfmt::skip]
+	const TOKENS: &[&str] = &[
+		"\\", 
+		"[", 
+		"]", 
+		"{", 
+		"}", 
+		"macr", 
+		":=", 
+		":", 
+		";", 
+		"&", 
+		"@",
+	];
+
+	let mut str = str.into();
+
+	for token in TOKENS {
+		str = str
+			.split(token)
+			.collect::<Vec<&str>>()
+			.join(&("\\".to_owned() + token));
+	}
+
+	str
+}
+
 /// A macro to create a [VecDeque](std::collections::VecDeque).
 /// # Examples
 /// ```
@@ -81,13 +121,13 @@ macro_rules! vecdeque {
 
 pub mod prelude {
 	pub use crate::error::TeaCatError;
-	pub use crate::eval_teacat_string;
 	pub use crate::expanded::{
 		ExpandedAst, ExpandedNode, ExpandedTag,
-		renderer::{Renderer, html::HtmlRenderer},
+		renderer::{Renderer, html::HtmlRenderer, tcat::TeaCatRenderer},
 	};
 	pub use crate::lexer::TokenStream;
 	pub use crate::parser::{Ast, Attributes};
+	pub use crate::{encode_str, eval_teacat_string};
 
 	// Meow
 	pub(crate) use anyhow::Result as CatResult;

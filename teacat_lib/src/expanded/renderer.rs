@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 pub mod html;
+pub mod tcat;
 
 /// Renders an [ExpandedAst] into another (typically human-readable) form.
 pub trait Renderer<Out> {

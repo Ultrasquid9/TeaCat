@@ -4,8 +4,10 @@ use std::{fs, path::PathBuf, process::ExitCode};
 
 use anstyle::{AnsiColor, Color, Style};
 use anyhow::{Result as CatResult, anyhow};
-use clap::{ArgMatches, arg, value_parser};
+use cliargs::RendererArg;
 use teacat_lib::prelude::*;
+
+mod cliargs;
 
 const ERR: Style = colorstyle(AnsiColor::Red);
 const DEFAULT: Style = colorstyle(AnsiColor::White);
@@ -22,25 +24,30 @@ fn main() -> ExitCode {
 }
 
 fn teacat() -> CatResult<()> {
-	let args = args();
+	let args = cliargs::args();
 
 	let Some(file) = args.try_get_one::<PathBuf>("file")? else {
 		return Err(anyhow!("no file provided"));
 	};
 	let out = args.try_get_one::<PathBuf>("out")?;
 
+	let fun = match args.try_get_one::<RendererArg>("renderer")? {
+		Some(RendererArg::TeaCat) => run::<TeaCatRenderer>,
+		_ => run::<HtmlRenderer>,
+	};
+
 	if args.get_flag("stress_test") {
 		for _ in 0..10000 {
-			run(file, out)?;
+			fun(file, out)?;
 		}
 	}
 
-	run(file, out)
+	fun(file, out)
 }
 
-fn run(file: &PathBuf, out: Option<&PathBuf>) -> CatResult<()> {
+fn run<R: Renderer<String>>(file: &PathBuf, out: Option<&PathBuf>) -> CatResult<()> {
 	let str = fs::read_to_string(file)?;
-	let html = eval(str)?;
+	let html = eval::<R>(str)?;
 
 	if let Some(file) = out {
 		fs::write(file, html)?;
@@ -51,23 +58,8 @@ fn run(file: &PathBuf, out: Option<&PathBuf>) -> CatResult<()> {
 	Ok(())
 }
 
-fn args() -> ArgMatches {
-	clap::command!()
-		.arg(arg!([file] "The file to read").value_parser(value_parser!(PathBuf)))
-		.arg(
-			arg!(-o --out <FILE> "The file to output to")
-				.required(false)
-				.value_parser(value_parser!(PathBuf)),
-		)
-		.arg(
-			arg!(--stress_test "Runs the program several times to test performance")
-				.required(false),
-		)
-		.get_matches()
-}
-
-fn eval(str: String) -> CatResult<String> {
-	match eval_teacat_string::<HtmlRenderer, _>(&str) {
+fn eval<R: Renderer<String>>(str: String) -> CatResult<String> {
+	match eval_teacat_string::<R, _>(&str) {
 		Err(err) => Err(if let Some(fancyerr) = err.downcast_ref::<TeaCatError>() {
 			anyhow!(fancyerr.err_fancy(str))
 		} else {
