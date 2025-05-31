@@ -1,11 +1,12 @@
 [package]
 name = "teacat_lib"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Tools for working with TeaCat files"
 license = "Artistic-2.0"
 categories = ["compilers", "parser-implementations"]
 keywords = ["templating", "template", "markup", "html", "language"]
+readme = "readme.md"
 
 [dependencies]
 html-escape = "0.2"

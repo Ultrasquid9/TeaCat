@@ -3,15 +3,16 @@ members = ["teacat_lib"]
 
 [package]
 name = "teacat"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A modern and powerful templating language"
 license = "Artistic-2.0"
 categories = ["command-line-utilities", "compilers"]
 keywords = ["templating", "template", "markup", "html", "language"]
+readme = "readme.md"
 
 [dependencies]
-teacat_lib = { version = "0.1.0", path = "teacat_lib" }
+teacat_lib = { version = "0.1.1", path = "teacat_lib" }
 clap = { version = "4.5", features = ["cargo"] }
 anyhow = "1"
 anstyle = "1"
