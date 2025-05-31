@@ -11,7 +11,7 @@ categories = ["command-line-utilities", "compilers"]
 keywords = ["templating", "template", "markup", "html", "language"]
 
 [dependencies]
-teacat_lib = { path = "teacat_lib" }
+teacat_lib = { version = "0.1.0", path = "teacat_lib" }
 clap = { version = "4.5", features = ["cargo"] }
 anyhow = "1"
 anstyle = "1"
