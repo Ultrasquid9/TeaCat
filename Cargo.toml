@@ -5,6 +5,10 @@ members = ["teacat_lib"]
 name = "teacat"
 version = "0.1.0"
 edition = "2024"
+description = "A modern and powerful templating language"
+license = "Artistic 2.0"
+categories = ["command-line-utilities", "compilers"]
+keywords = ["templating", "template", "markup", "html", "language"]
 
 [dependencies]
 teacat_lib = { path = "teacat_lib" }
