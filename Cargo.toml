@@ -10,6 +10,7 @@ license = "Artistic-2.0"
 categories = ["command-line-utilities", "compilers"]
 keywords = ["templating", "template", "markup", "html", "language"]
 readme = "readme.md"
+repository = "https://github.com/Ultrasquid9/TeaCat"
 
 [dependencies]
 teacat_lib = { version = "0.1.1", path = "teacat_lib" }
