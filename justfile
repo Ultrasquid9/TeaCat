@@ -1,4 +1,4 @@
-testfile := "test.wc"
+testfile := "test.tcat"
 targetfile := "index.html"
 
 default: fmt clippy test (run testfile)

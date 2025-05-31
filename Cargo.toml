@@ -1,13 +1,13 @@
 [workspace]
-members = ["webcat_lib"]
+members = ["teacat_lib"]
 
 [package]
-name = "webcat"
+name = "teacat"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-webcat_lib = { path = "webcat_lib" }
+teacat_lib = { path = "teacat_lib" }
 clap = { version = "4.5", features = ["cargo"] }
 anyhow = "1"
 anstyle = "1"

@@ -90,7 +90,7 @@ impl Ast {
 		}
 
 		if let Some(token) = until {
-			Err(WebCatError::EarlyEof(current_line, token).into())
+			Err(TeaCatError::EarlyEof(current_line, token).into())
 		} else {
 			Ok(Self(nodes.into()))
 		}
@@ -129,7 +129,7 @@ impl Attributes {
 
 		loop {
 			let Some((line, token)) = tokenstream.pop() else {
-				return Err(WebCatError::EarlyEof(current_line, Token::CloseBrace).into());
+				return Err(TeaCatError::EarlyEof(current_line, Token::CloseBrace).into());
 			};
 			current_line = line;
 
@@ -138,19 +138,19 @@ impl Attributes {
 				Token::Text(key) => {
 					tokenstream.expect_with_err(
 						Token::Colon,
-						WebCatError::UnexpectedAttr,
-						|| WebCatError::EarlyEof(line, Token::Colon),
+						TeaCatError::UnexpectedAttr,
+						|| TeaCatError::EarlyEof(line, Token::Colon),
 					)?;
 
 					let val = match tokenstream.pop() {
 						Some((_, Token::Stringliteral(val))) => val,
 
 						Some((line, token)) => {
-							return Err(WebCatError::UnexpectedAttr(line, token).into());
+							return Err(TeaCatError::UnexpectedAttr(line, token).into());
 						}
 
 						_ => {
-							return Err(WebCatError::EarlyEof(
+							return Err(TeaCatError::EarlyEof(
 								line,
 								Token::Stringliteral(StringLiteral::empty('"')),
 							)
@@ -162,7 +162,7 @@ impl Attributes {
 				}
 
 				other => {
-					return Err(WebCatError::UnexpectedAttr(line, other).into());
+					return Err(TeaCatError::UnexpectedAttr(line, other).into());
 				}
 			}
 		}
@@ -190,7 +190,7 @@ fn macr(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 
 	loop {
 		let Some((line, token)) = tokenstream.pop() else {
-			return Err(WebCatError::EarlyEof(line, Token::CloseBrace).into());
+			return Err(TeaCatError::EarlyEof(line, Token::CloseBrace).into());
 		};
 
 		match token {
@@ -200,7 +200,7 @@ fn macr(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 				macr.args.push(name);
 			}
 
-			other => return Err(WebCatError::UnexpectedToken(line, other).into()),
+			other => return Err(TeaCatError::UnexpectedToken(line, other).into()),
 		}
 	}
 
@@ -218,7 +218,7 @@ fn access_macr(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 
 	loop {
 		let Some((line, token)) = tokenstream.pop() else {
-			return Err(WebCatError::EarlyEof(line, Token::CloseBracket).into());
+			return Err(TeaCatError::EarlyEof(line, Token::CloseBracket).into());
 		};
 
 		match token {
@@ -233,8 +233,8 @@ fn access_macr(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 						};
 						tokenstream.expect_with_err(
 							Token::SemiColon,
-							WebCatError::ExpectedSemicolon,
-							|| WebCatError::EarlyEof(line, Token::SemiColon),
+							TeaCatError::ExpectedSemicolon,
+							|| TeaCatError::EarlyEof(line, Token::SemiColon),
 						)?;
 						var
 					}
@@ -243,7 +243,7 @@ fn access_macr(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 
 				vars.push(var);
 			}
-			other => return Err(WebCatError::EarlyEof(line, other).into()),
+			other => return Err(TeaCatError::EarlyEof(line, other).into()),
 		}
 	}
 
@@ -276,8 +276,8 @@ fn tag(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 		Some((_, Token::SemiColon)) => Ast::empty(),
 		Some((_, Token::OpenBracket)) => Ast::parse_until(tokenstream, Some(Token::CloseBracket))?,
 
-		Some((line, token)) => return Err(WebCatError::UnexpectedToken(line, token).into()),
-		None => return Err(WebCatError::EarlyEof(line, Token::SemiColon).into()),
+		Some((line, token)) => return Err(TeaCatError::UnexpectedToken(line, token).into()),
+		None => return Err(TeaCatError::EarlyEof(line, Token::SemiColon).into()),
 	};
 
 	Ok(AstNode::Tag(Tag {
@@ -294,7 +294,7 @@ fn array(tokenstream: &mut TokenStream) -> CatResult<AstNode> {
 		match tokenstream.0.front() {
 			Some((_, Token::CloseBrace)) => break,
 			Some(_) => array.push(Ast::parse_until(tokenstream, Some(Token::SemiColon))?),
-			None => return Err(WebCatError::EarlyEof(0, Token::SemiColon).into()),
+			None => return Err(TeaCatError::EarlyEof(0, Token::SemiColon).into()),
 		}
 	}
 

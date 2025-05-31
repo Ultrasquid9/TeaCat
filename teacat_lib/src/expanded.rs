@@ -50,7 +50,7 @@ impl ExpandedAst {
 				}
 				AstNode::AccessVar(line, var) => {
 					let Some(contents) = vars.get(&var) else {
-						return Err(WebCatError::UndefinedVar(line, var).into());
+						return Err(TeaCatError::UndefinedVar(line, var).into());
 					};
 					expanded.0.append(&mut contents.0.clone());
 				}
@@ -66,7 +66,7 @@ impl ExpandedAst {
 					}
 
 					let Some(macr) = macrs.get(&name) else {
-						return Err(WebCatError::UndefinedMacr(line, name).into());
+						return Err(TeaCatError::UndefinedMacr(line, name).into());
 					};
 
 					let mut expanded_macr =

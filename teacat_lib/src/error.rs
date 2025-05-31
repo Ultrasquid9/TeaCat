@@ -19,7 +19,7 @@ const DEFAULT: Style = colorstyle(AnsiColor::White);
 const BOLD: Style = Style::new().bold();
 
 #[derive(Debug, Clone)]
-pub enum WebCatError {
+pub enum TeaCatError {
 	UndefinedVar(usize, String),
 	UndefinedMacr(usize, String),
 	UnexpectedAttr(usize, Token),
@@ -29,7 +29,7 @@ pub enum WebCatError {
 	EarlyEof(usize, Token),
 }
 
-impl Display for WebCatError {
+impl Display for TeaCatError {
 	fn fmt(&self, f: &mut Formatter<'_>) -> Result {
 		f.write_str(&match self {
 			Self::UndefinedVar(_, var) => format!("variable '&{var}' undefined"),
@@ -47,14 +47,14 @@ impl Display for WebCatError {
 	}
 }
 
-impl Error for WebCatError {}
+impl Error for TeaCatError {}
 
-impl WebCatError {
+impl TeaCatError {
 	fn line_num(&self) -> usize {
 		macro_rules! get_line {
 			( $( $name:ident, )* ) => {
 				match self {
-					$( | WebCatError::$name(line, ..) )* => *line,
+					$( | TeaCatError::$name(line, ..) )* => *line,
 				}
 			};
 		}
@@ -94,12 +94,12 @@ impl WebCatError {
 		}
 	}
 
-	pub fn err_fancy(&self, webcat_str: impl Into<String>) -> String {
+	pub fn err_fancy(&self, teacat_str: impl Into<String>) -> String {
 		let help = format!(
 			"{DARK}    ╰─▶ {HELP}{BOLD}help: {}{BOLD:#}{DEFAULT}",
 			self.help_msg()
 		);
-		let lines = Lines::new(self.line_num(), webcat_str);
+		let lines = Lines::new(self.line_num(), teacat_str);
 
 		format!("{BOLD}{self}{BOLD:#}\n\n{lines}{DARK}    {VERT_DASH}\n{help}\n")
 	}

@@ -5,14 +5,14 @@ use std::{fs, path::PathBuf, process::ExitCode};
 use anstyle::{AnsiColor, Color, Style};
 use anyhow::{Result as CatResult, anyhow};
 use clap::{ArgMatches, arg, value_parser};
-use webcat_lib::prelude::*;
+use teacat_lib::prelude::*;
 
 const ERR: Style = colorstyle(AnsiColor::Red);
 const DEFAULT: Style = colorstyle(AnsiColor::White);
 const BOLD: Style = Style::new().bold();
 
 fn main() -> ExitCode {
-	match webcat() {
+	match teacat() {
 		Ok(_) => ExitCode::SUCCESS,
 		Err(e) => {
 			eprintln!("\n{BOLD}{ERR}Error{DEFAULT}: {e}{BOLD:#}");
@@ -21,7 +21,7 @@ fn main() -> ExitCode {
 	}
 }
 
-fn webcat() -> CatResult<()> {
+fn teacat() -> CatResult<()> {
 	let args = args();
 
 	let Some(file) = args.try_get_one::<PathBuf>("file")? else {
@@ -67,8 +67,8 @@ fn args() -> ArgMatches {
 }
 
 fn eval(str: String) -> CatResult<String> {
-	match eval_webcat_string::<HtmlRenderer, _>(&str) {
-		Err(err) => Err(if let Some(fancyerr) = err.downcast_ref::<WebCatError>() {
+	match eval_teacat_string::<HtmlRenderer, _>(&str) {
+		Err(err) => Err(if let Some(fancyerr) = err.downcast_ref::<TeaCatError>() {
 			anyhow!(fancyerr.err_fancy(str))
 		} else {
 			err

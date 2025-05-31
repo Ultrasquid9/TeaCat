@@ -1,11 +1,11 @@
-//! # WebCat
-//! This crate contains basic tools for working with WebCat files.
+//! # TeaCat
+//! This crate contains basic tools for working with TeaCat files.
 //!
 //! ```rust
 //! # fn hidden() -> anyhow::Result<()> {
-//! use webcat_lib::prelude::*;
+//! use teacat_lib::prelude::*;
 //!
-//! let webcat_str = "
+//! let teacat_str = "
 //! &title := :title[My Webpage];
 //!
 //! :head[
@@ -18,7 +18,7 @@
 //! "
 //! .to_string();
 //!
-//! let tokenstream = TokenStream::lex(webcat_str);
+//! let tokenstream = TokenStream::lex(teacat_str);
 //! let ast = Ast::parse(tokenstream)?;
 //! let expanded = ExpandedAst::expand(ast)?;
 //! let html = HtmlRenderer::render(expanded);
@@ -41,22 +41,22 @@ pub mod expanded;
 pub mod lexer;
 pub mod parser;
 
-/// Evaluates a WebCat string.
+/// Evaluates a TeaCat string.
 /// # Examples
 /// ```
-/// use webcat_lib::prelude::*;
+/// use teacat_lib::prelude::*;
 ///
-/// let webcat_string = ":head[]";
+/// let teacat_string = ":head[]";
 ///
 /// assert_eq!(
-/// 	eval_webcat_string::<HtmlRenderer, String>(webcat_string).unwrap(),
+/// 	eval_teacat_string::<HtmlRenderer, String>(teacat_string).unwrap(),
 /// 	"<!DOCTYPE html><html><head></head></html>".to_string(),
 /// );
 /// ```
-pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(
-	webcat_string: impl AsRef<str>,
+pub fn eval_teacat_string<Rend: Renderer<Out>, Out>(
+	teacat_string: impl AsRef<str>,
 ) -> CatResult<Out> {
-	let tokenstream = TokenStream::lex(webcat_string);
+	let tokenstream = TokenStream::lex(teacat_string);
 	let ast = Ast::parse(tokenstream)?;
 	let expanded = ExpandedAst::expand(ast)?;
 	Ok(Rend::render(expanded))
@@ -65,7 +65,7 @@ pub fn eval_webcat_string<Rend: Renderer<Out>, Out>(
 /// A macro to create a [VecDeque](std::collections::VecDeque).
 /// # Examples
 /// ```
-/// use webcat_lib::vecdeque;
+/// use teacat_lib::vecdeque;
 ///
 /// assert_eq!(
 /// 	vecdeque![1, 2, 3,],
@@ -80,8 +80,8 @@ macro_rules! vecdeque {
 }
 
 pub mod prelude {
-	pub use crate::error::WebCatError;
-	pub use crate::eval_webcat_string;
+	pub use crate::error::TeaCatError;
+	pub use crate::eval_teacat_string;
 	pub use crate::expanded::{
 		ExpandedAst, ExpandedNode, ExpandedTag,
 		renderer::{Renderer, html::HtmlRenderer},

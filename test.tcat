@@ -62,7 +62,7 @@ macr @person{&name &pronouns}[
 				World; 
 				this is; 
 				a test of; 
-				arrays in WebCat;
+				arrays in TeaCat;
 
 				:h2[Tags can be placed within arrays too];
 			}

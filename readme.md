@@ -1,5 +1,5 @@
-# WebCat
-HTML is a pain to write. It's wordy, messy, and generally not something you want to be doing yourself. WebCat is designed to solve this.
+# TeaCat
+HTML is a pain to write. It's wordy, messy, and generally not something you want to be doing yourself. TeaCat is designed to solve this.
 
 For example, take the following HTML:
 ```html
@@ -15,7 +15,7 @@ For example, take the following HTML:
 </html>
 
 ```
-WebCat allows you to instead write it like this:
+TeaCat allows you to instead write it like this:
 ```
 &hello_world := Hello World!;
 
@@ -28,7 +28,7 @@ WebCat allows you to instead write it like this:
 	:p[Welcome to my website.]
 ]
 ```
-The following WebCat code can then be instantly transpiled into HTML entirely offline, no JS or webserver required. 
+The following TeaCat code can then be instantly transpiled into HTML entirely offline, no JS or webserver required. 
 
 Features:
 - [x] Elements

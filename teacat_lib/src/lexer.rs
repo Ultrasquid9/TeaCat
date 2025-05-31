@@ -10,11 +10,11 @@ const QUOTES: &[char] = &['\'', '"'];
 
 type Rules<T> = &'static [(&'static str, T)];
 
-/// A list of [Tokens](Token) built from a WebCat string.
+/// A list of [Tokens](Token) built from a TeaCat string.
 #[derive(PartialEq, Eq, Debug)]
 pub struct TokenStream(pub VecDeque<(usize, Token)>);
 
-/// The basic building blocks of a WebCat file.
+/// The basic building blocks of a TeaCat file.
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Token {
 	Ident(String),
@@ -208,32 +208,32 @@ impl TokenStream {
 	}
 
 	/// Checks to see if the [TokenStream] begins with an ident. If it does, return the name of the
-	/// ident and the line number. Otherwise, return a relevant [Error](WebCatError).
+	/// ident and the line number. Otherwise, return a relevant [Error](TeaCatError).
 	pub(crate) fn current_ident(&mut self) -> CatResult<(usize, String)> {
 		match self.pop() {
 			Some((line, Token::Ident(name))) => Ok((line, name)),
-			Some((line, token)) => Err(WebCatError::ExpectedIdent(line, token).into()),
-			None => Err(WebCatError::EarlyEof(0, Token::Ident("ident".into())).into()),
+			Some((line, token)) => Err(TeaCatError::ExpectedIdent(line, token).into()),
+			None => Err(TeaCatError::EarlyEof(0, Token::Ident("ident".into())).into()),
 		}
 	}
 
 	/// Checks to see if the [TokenStream] begins with the provided [Token]. If it does not, returns
-	/// a relevant [Error](WebCatError).
+	/// a relevant [Error](TeaCatError).
 	pub fn expect(&mut self, token: Token) -> CatResult<()> {
 		match self.pop() {
 			Some((_, t)) if t == token => Ok(()),
-			Some((line, token)) => Err(WebCatError::UnexpectedToken(line, token).into()),
-			_ => Err(WebCatError::EarlyEof(0, token).into()),
+			Some((line, token)) => Err(TeaCatError::UnexpectedToken(line, token).into()),
+			_ => Err(TeaCatError::EarlyEof(0, token).into()),
 		}
 	}
 
 	/// Checks to see if the [TokenStream] begins with the provided [Token]. If it does not, returns
-	/// the provided [Error](WebCatError).
+	/// the provided [Error](TeaCatError).
 	pub fn expect_with_err(
 		&mut self,
 		token: Token,
-		err_some: impl Fn(usize, Token) -> WebCatError,
-		err_none: impl Fn() -> WebCatError,
+		err_some: impl Fn(usize, Token) -> TeaCatError,
+		err_none: impl Fn() -> TeaCatError,
 	) -> CatResult<()> {
 		match self.pop() {
 			Some((_, t)) if t == token => Ok(()),
@@ -522,7 +522,7 @@ mod tests {
 
 	#[test]
 	fn final_boss() {
-		// Simplified version of the test.wc example
+		// Simplified version of the test.tcat example
 		let str = "
 		&title := :title[My Webpage];
 		:head[&title]

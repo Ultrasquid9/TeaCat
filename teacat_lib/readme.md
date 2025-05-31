@@ -1,10 +1,10 @@
-# WebCat
-This crate contains basic tools for working with WebCat files. 
+# TeaCat
+This crate contains basic tools for working with TeaCat files. 
 
 ```rust
-use webcat_lib::prelude::*;
+use teacat_lib::prelude::*;
 
-let webcat_str = "
+let teacat_str = "
 &title := :title[My Webpage];
 
 :head[
@@ -17,7 +17,7 @@ let webcat_str = "
 "
 .to_string();
 
-let tokenstream = TokenStream::lex(webcat_str);
+let tokenstream = TokenStream::lex(teacat_str);
 let ast = Ast::parse(tokenstream)?;
 let expanded = ExpandedAst::expand(ast)?;
 let html = HtmlRenderer::render(expanded);
